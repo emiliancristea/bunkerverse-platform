@@ -1,5 +1,8 @@
 [workspace]
 resolver = "2"
+exclude = [
+    "libs/nar-rust-wrapper-for-llama-cpp/fuzz",
+]
 members = [
     "contracts",
     "services/identity",
