@@ -1,0 +1,40 @@
+# Redis Marketplace PoC - Docker Compose
+# Provides Redis instance for marketplace service testing
+
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: bunkerverse-marketplace-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - marketplace
+
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: bunkerverse-redis-ui
+    depends_on:
+      - redis
+    environment:
+      - REDIS_HOSTS=redis:redis:6379
+    ports:
+      - "8081:8081"
+    networks:
+      - marketplace
+
+volumes:
+  redis_data:
+
+networks:
+  marketplace:
+    driver: bridge

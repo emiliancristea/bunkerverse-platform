@@ -1,0 +1,17 @@
+{
+  "name": "bunkerverse-contracts",
+  "version": "0.1.0",
+  "description": "Smart contracts for Bunkerverse Platform L3 testing",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "deploy:local": "hardhat run scripts/deploy.js --network localhost",
+    "deploy:l3": "hardhat run scripts/deploy.js --network bunkerverse"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@openzeppelin/contracts": "^5.0.0",
+    "hardhat": "^2.19.0",
+    "ethers": "^6.8.0"
+  }
+}

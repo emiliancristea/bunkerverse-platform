@@ -1,0 +1,214 @@
+version: '3.8'
+
+services:
+  # Ethereum L1 Node (Anvil for testing)
+  ethereum-l1:
+    image: ghcr.io/foundry-rs/foundry:latest
+    command: anvil --host 0.0.0.0 --port 8545 --chain-id 31337
+    ports:
+      - "8555:8545"
+    environment:
+      - ANVIL_IP_ADDR=0.0.0.0
+    networks:
+      - bunkerverse-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8545"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Arbitrum One L2 Node (local dev)
+  arbitrum-l2:
+    image: offchainlabs/nitro-node:v2.3.4-b4cc111
+    depends_on:
+      - ethereum-l1
+    command: |
+      --parent-chain.connection.url=http://ethereum-l1:8545
+      --chain.id=42161
+      --http.addr=0.0.0.0
+      --http.port=8547
+      --http.corsdomain=*
+      --http.vhosts=*
+      --ws.addr=0.0.0.0
+      --ws.port=8548
+    ports:
+      - "8547:8547"
+      - "8548:8548"
+    networks:
+      - bunkerverse-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8547"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Bunkerverse L3 Node (Arbitrum Orbit)
+  bunkerverse-l3:
+    image: offchainlabs/nitro-node:v2.3.4-b4cc111
+    depends_on:
+      - arbitrum-l2
+    command: |
+      --parent-chain.connection.url=http://arbitrum-l2:8547
+      --chain.id=33701
+      --http.addr=0.0.0.0
+      --http.port=8549
+      --http.corsdomain=*
+      --http.vhosts=*
+      --ws.addr=0.0.0.0
+      --ws.port=8550
+      --node.feed.output.enable=false
+      --node.feed.input.enable=false
+    ports:
+      - "8549:8549"  # HTTP RPC
+      - "8550:8550"  # WebSocket
+    networks:
+      - bunkerverse-network
+    environment:
+      - L3_CHAIN_ID=33701
+      - NATIVE_TOKEN=NTC
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8549"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # Redis for caching and session management
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - bunkerverse-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Elasticsearch for indexing
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.1
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    networks:
+      - bunkerverse-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # IPFS for decentralized storage
+  ipfs:
+    image: ipfs/go-ipfs:latest
+    ports:
+      - "4001:4001"   # P2P
+      - "5001:5001"   # API
+      - "8080:8080"   # Gateway
+    networks:
+      - bunkerverse-network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5001/api/v0/version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Identity Service (zkLogin)
+  identity-service:
+    build:
+      context: .
+      dockerfile: services/identity/Dockerfile
+    depends_on:
+      - redis
+      - bunkerverse-l3
+    ports:
+      - "3001:3001"
+    environment:
+      - RUST_LOG=info
+      - REDIS_URL=redis://redis:6379
+      - L3_RPC_URL=http://bunkerverse-l3:8549
+      - ENABLE_CRYPTO=false
+    networks:
+      - bunkerverse-network
+
+  # Account Service
+  account-service:
+    build:
+      context: .
+      dockerfile: services/account/Dockerfile
+    depends_on:
+      - redis
+      - identity-service
+    ports:
+      - "3002:3002"
+    environment:
+      - RUST_LOG=info
+      - REDIS_URL=redis://redis:6379
+      - IDENTITY_SERVICE_URL=http://identity-service:3001
+    networks:
+      - bunkerverse-network
+
+  # Marketplace Service
+  marketplace-service:
+    build:
+      context: .
+      dockerfile: services/marketplace/Dockerfile
+    depends_on:
+      - redis
+      - elasticsearch
+    ports:
+      - "3003:3003"
+    environment:
+      - RUST_LOG=info
+      - REDIS_URL=redis://redis:6379
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+    networks:
+      - bunkerverse-network
+
+  # AI Data Service (NAR integration)
+  ai-data-service:
+    build:
+      context: .
+      dockerfile: services/ai_data/Dockerfile
+    ports:
+      - "3004:3004"
+    environment:
+      - RUST_LOG=info
+      - MODEL_PATH=/app/models/
+    volumes:
+      - ./libs/nar-rust-wrapper-for-llama-cpp/models:/app/models:ro
+    networks:
+      - bunkerverse-network
+
+  # Global Indexing Layer
+  indexer-service:
+    build:
+      context: .
+      dockerfile: indexer/Dockerfile
+    depends_on:
+      - elasticsearch
+      - bunkerverse-l3
+    ports:
+      - "3005:3005"
+    environment:
+      - RUST_LOG=info
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - L3_RPC_URL=http://bunkerverse-l3:8549
+    networks:
+      - bunkerverse-network
+
+networks:
+  bunkerverse-network:
+    driver: bridge
+
+volumes:
+  ethereum_data:
+  arbitrum_data:
+  bunkerverse_data:
+  redis_data:
+  elasticsearch_data:
+  ipfs_data:

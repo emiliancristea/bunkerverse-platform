@@ -2,6 +2,7 @@
 resolver = "2"
 exclude = [
     "libs/nar-rust-wrapper-for-llama-cpp/fuzz",
+    "poc/*",
 ]
 members = [
     "contracts",
@@ -13,7 +14,7 @@ members = [
     "services/social",
     "services/ai_data",
     "services/feedback",
-    "indexer",
+    "services/indexer",
     "libs/common-rust",
     "libs/nar-rust-wrapper-for-llama-cpp",
     "client/rust-app-logic",
