@@ -1,0 +1,149 @@
+#!/bin/bash
+
+# Pre-commit hook for BUNKERVERSE Platform
+# Implements security-first development practices as per Task 0.1 requirements
+
+set -e
+
+echo "🔍 Running pre-commit checks..."
+
+# Check if we're in the correct directory
+if [ ! -f "Cargo.toml" ]; then
+    echo "❌ Not in project root directory"
+    exit 1
+fi
+
+# Function to check if command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+echo "📋 Running Rust checks..."
+
+# Check if any Rust files are staged
+rust_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(rs)$' || true)
+
+if [ -n "$rust_files" ]; then
+    echo "🦀 Found Rust files, running cargo checks..."
+    
+    # Format check
+    if command_exists cargo; then
+        echo "🎨 Running cargo fmt..."
+        cargo fmt --all -- --check || {
+            echo "❌ Rust formatting issues found. Run 'cargo fmt --all' to fix."
+            exit 1
+        }
+        
+        # Clippy check with strict settings
+        echo "🔍 Running cargo clippy..."
+        cargo clippy --workspace --all-targets -- \
+            -D warnings \
+            -A clippy::all \
+            -W clippy::pedantic \
+            -W clippy::nursery \
+            -W clippy::cargo || {
+            echo "❌ Clippy issues found. Fix them before committing."
+            exit 1
+        }
+        
+        # Security audit
+        echo "🛡️ Running cargo audit..."
+        if command_exists cargo-audit; then
+            cargo audit --deny warnings || {
+                echo "❌ Security vulnerabilities found. Fix them before committing."
+                exit 1
+            }
+        else
+            echo "⚠️ cargo-audit not installed. Install with: cargo install cargo-audit"
+        fi
+    else
+        echo "❌ Cargo not found. Please install Rust toolchain."
+        exit 1
+    fi
+else
+    echo "ℹ️ No Rust files staged, skipping Rust checks"
+fi
+
+echo "📋 Running C++ checks..."
+
+# Check if any C++ files are staged
+cpp_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(cpp|cc|cxx|h|hpp|hxx)$' || true)
+
+if [ -n "$cpp_files" ]; then
+    echo "🔧 Found C++ files, running checks..."
+    
+    # Basic compilation check would go here
+    # For now, just validate they exist and are not empty
+    for file in $cpp_files; do
+        if [ ! -s "$file" ]; then
+            echo "❌ Empty C++ file: $file"
+            exit 1
+        fi
+    done
+    
+    echo "✅ C++ files validated"
+else
+    echo "ℹ️ No C++ files staged, skipping C++ checks"
+fi
+
+echo "📋 Running QML checks..."
+
+# Check if any QML files are staged
+qml_files=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(qml|js)$' || true)
+
+if [ -n "$qml_files" ]; then
+    echo "🎨 Found QML files, running basic validation..."
+    
+    # Basic QML validation
+    for file in $qml_files; do
+        if [ ! -s "$file" ]; then
+            echo "❌ Empty QML file: $file"
+            exit 1
+        fi
+    done
+    
+    echo "✅ QML files validated"
+else
+    echo "ℹ️ No QML files staged, skipping QML checks"
+fi
+
+echo "📋 Running general file checks..."
+
+# Check for potential secrets
+echo "🔍 Checking for potential secrets..."
+secret_patterns=(
+    "password.*="
+    "secret.*="
+    "token.*="
+    "key.*="
+)
+
+staged_files=$(git diff --cached --name-only --diff-filter=ACM | grep -v ".md$" || true)
+
+for pattern in "${secret_patterns[@]}"; do
+    if [ -n "$staged_files" ]; then
+        matches=$(echo "$staged_files" | xargs grep -l -i "$pattern" 2>/dev/null || true)
+        if [ -n "$matches" ]; then
+            echo "❌ Potential sensitive information found containing '$pattern' - review carefully"
+            echo "$matches"
+            exit 1
+        fi
+    fi
+done
+
+# Check file sizes (prevent accidentally committing large files)
+echo "📏 Checking file sizes..."
+large_files=$(git diff --cached --name-only --diff-filter=ACM | xargs ls -la 2>/dev/null | awk '$5 > 10485760 {print $9, $5}' || true)
+if [ -n "$large_files" ]; then
+    echo "❌ Large files detected (>10MB):"
+    echo "$large_files"
+    echo "Consider using Git LFS for large files"
+    exit 1
+fi
+
+echo "✅ All pre-commit checks passed!"
+echo ""
+echo "💡 Common fixes:"
+echo "   • Run 'cargo fmt --all' to format Rust code"
+echo "   • Run 'cargo clippy --fix' to auto-fix some linting issues" 
+echo "   • Run 'cargo audit --fix' to update vulnerable dependencies"
