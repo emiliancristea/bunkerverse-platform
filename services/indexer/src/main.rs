@@ -1,10 +1,4 @@
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::Json,
-    routing::get,
-    Router,
-};
+use axum::{extract::State, http::StatusCode, response::Json, routing::get, Router};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
@@ -49,10 +43,10 @@ async fn health_check(State(state): State<AppState>) -> Json<serde_json::Value> 
 
 async fn get_index_status(State(state): State<AppState>) -> Result<Json<IndexStatus>, StatusCode> {
     info!("📊 Fetching index status");
-    
+
     // In a real implementation, this would query actual blockchain data
     warn!("🚧 Using mock indexer data for PoC");
-    
+
     Ok(Json(IndexStatus {
         total_blocks: state.mock_data.total_blocks,
         total_transactions: state.mock_data.total_transactions,
@@ -62,9 +56,11 @@ async fn get_index_status(State(state): State<AppState>) -> Result<Json<IndexSta
     }))
 }
 
-async fn get_latest_blocks(State(state): State<AppState>) -> Result<Json<serde_json::Value>, StatusCode> {
+async fn get_latest_blocks(
+    State(state): State<AppState>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
     info!("🧱 Fetching latest blocks");
-    
+
     // Mock block data
     let blocks = serde_json::json!({
         "blocks": [
@@ -76,13 +72,13 @@ async fn get_latest_blocks(State(state): State<AppState>) -> Result<Json<serde_j
             },
             {
                 "number": 998,
-                "hash": "0xdef456...", 
+                "hash": "0xdef456...",
                 "timestamp": "2025-09-08T14:14:50Z",
                 "transactions": 3
             }
         ]
     });
-    
+
     Ok(Json(blocks))
 }
 
@@ -90,11 +86,11 @@ async fn get_latest_blocks(State(state): State<AppState>) -> Result<Json<serde_j
 async fn main() -> anyhow::Result<()> {
     // Initialize tracing
     tracing_subscriber::fmt::init();
-    
+
     info!("🚀 Starting Bunkerverse Indexer Service (PoC)");
-    
+
     let state = AppState::new();
-    
+
     // Build the router
     let app = Router::new()
         .route("/health", get(health_check))
@@ -102,12 +98,12 @@ async fn main() -> anyhow::Result<()> {
         .route("/index/blocks/latest", get(get_latest_blocks))
         .layer(CorsLayer::permissive())
         .with_state(state);
-    
+
     // Start the server
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3003").await?;
     info!("🌐 Indexer service listening on http://0.0.0.0:3003");
-    
+
     axum::serve(listener, app).await?;
-    
+
     Ok(())
 }

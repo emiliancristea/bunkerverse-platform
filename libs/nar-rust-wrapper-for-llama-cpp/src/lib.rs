@@ -76,16 +76,16 @@ impl NarEngine {
                 use_mmap: 1,
                 use_mlock: 0,
             };
-            
+
             // Load the model
             let model_path = CString::new(config.model_path.clone())
                 .map_err(|e| anyhow!("Invalid model path: {}", e))?;
-            
+
             let model = llama_load_model_from_file(model_path.as_ptr(), model_params);
             if model.is_null() {
                 return Err(anyhow!("Failed to load model from: {}", config.model_path));
             }
-            
+
             // Initialize context parameters
             let context_params = llama_context_params {
                 seed: config.seed,
@@ -106,14 +106,14 @@ impl NarEngine {
                 embedding: 0,
                 offload_kqv: 1,
             };
-            
+
             // Create context
             let context = llama_new_context_with_model(model, context_params);
             if context.is_null() {
                 llama_free_model(model);
                 return Err(anyhow!("Failed to create llama context"));
             }
-            
+
             Ok(NarEngine {
                 model,
                 context,
@@ -121,16 +121,16 @@ impl NarEngine {
             })
         }
     }
-    
+
     /// Generate text based on the given prompt
     pub fn generate(&self, request: GenerationRequest) -> Result<GenerationResponse> {
         let start_time = std::time::Instant::now();
-        
+
         unsafe {
             // Tokenize the prompt
             let prompt_cstr = CString::new(request.prompt.clone())
                 .map_err(|e| anyhow!("Invalid prompt: {}", e))?;
-            
+
             let mut tokens = vec![0 as llama_token; 1024];
             let n_tokens = llama_tokenize(
                 self.context,
@@ -141,13 +141,13 @@ impl NarEngine {
                 1, // add_bos
                 0, // special
             );
-            
+
             if n_tokens < 0 {
                 return Err(anyhow!("Failed to tokenize prompt"));
             }
-            
+
             tokens.truncate(n_tokens as usize);
-            
+
             // Decode the prompt tokens
             let decode_result = llama_decode(
                 self.context,
@@ -156,15 +156,15 @@ impl NarEngine {
                 0, // n_past
                 self.config.threads,
             );
-            
+
             if decode_result != 0 {
                 return Err(anyhow!("Failed to decode prompt tokens"));
             }
-            
+
             // Generate tokens one by one
             let mut generated_tokens = Vec::new();
             let mut generated_text = String::new();
-            
+
             for _ in 0..request.max_tokens {
                 // Sample next token (greedy for simplicity in PoC)
                 let next_token = llama_sample_token_greedy(
@@ -172,29 +172,31 @@ impl NarEngine {
                     tokens.as_mut_ptr(),
                     tokens.len() as i32,
                 );
-                
+
                 generated_tokens.push(next_token);
-                
+
                 // Convert token to text
                 let token_str = llama_token_to_piece(self.context, next_token);
                 let token_text = CStr::from_ptr(token_str).to_string_lossy();
-                
+
                 // Check for stop sequences
-                let should_stop = request.stop_sequences.iter()
+                let should_stop = request
+                    .stop_sequences
+                    .iter()
                     .any(|stop| token_text.contains(stop));
-                
+
                 if should_stop {
                     break;
                 }
-                
+
                 generated_text.push_str(&token_text);
-                
+
                 // Prepare for next iteration
                 tokens.push(next_token);
                 if tokens.len() >= self.config.context_size as usize {
                     break;
                 }
-                
+
                 // Decode the new token
                 let decode_result = llama_decode(
                     self.context,
@@ -203,14 +205,14 @@ impl NarEngine {
                     tokens.len() as i32 - 1,
                     self.config.threads,
                 );
-                
+
                 if decode_result != 0 {
                     break;
                 }
             }
-            
+
             let processing_time = start_time.elapsed().as_millis() as u64;
-            
+
             Ok(GenerationResponse {
                 generated_text,
                 tokens_used: generated_tokens.len(),
@@ -218,7 +220,7 @@ impl NarEngine {
             })
         }
     }
-    
+
     /// Get model information
     pub fn get_model_info(&self) -> Result<serde_json::Value> {
         unsafe {
@@ -232,7 +234,7 @@ impl NarEngine {
             }))
         }
     }
-    
+
     /// Validate model loading and basic functionality
     pub fn validate(&self) -> Result<()> {
         let test_request = GenerationRequest {
@@ -242,18 +244,18 @@ impl NarEngine {
             top_p: 0.9,
             stop_sequences: vec![],
         };
-        
+
         let response = self.generate(test_request)?;
-        
+
         if response.tokens_used == 0 {
             return Err(anyhow!("Model validation failed: no tokens generated"));
         }
-        
+
         println!("✅ NAR Engine validation successful");
         println!("   Tokens generated: {}", response.tokens_used);
         println!("   Processing time: {}ms", response.processing_time_ms);
         println!("   Sample output: {}", response.generated_text);
-        
+
         Ok(())
     }
 }
@@ -278,14 +280,14 @@ unsafe impl Sync for NarEngine {}
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn test_nar_config_default() {
         let config = NarConfig::default();
         assert_eq!(config.context_size, 2048);
         assert_eq!(config.threads, 4);
     }
-    
+
     #[test]
     fn test_generation_request_serialization() {
         let request = GenerationRequest {
@@ -295,14 +297,14 @@ mod tests {
             top_p: 0.9,
             stop_sequences: vec!["<stop>".to_string()],
         };
-        
+
         let serialized = serde_json::to_string(&request).unwrap();
         let deserialized: GenerationRequest = serde_json::from_str(&serialized).unwrap();
-        
+
         assert_eq!(request.prompt, deserialized.prompt);
         assert_eq!(request.max_tokens, deserialized.max_tokens);
     }
-    
+
     #[test]
     fn test_mock_nar_engine() {
         // This test uses mock implementation
@@ -310,12 +312,12 @@ mod tests {
             model_path: "mock://model".to_string(),
             ..Default::default()
         };
-        
+
         // In PoC, we can't actually test the engine creation due to mock limitations
         // But we can test the configuration and serialization
         let json = serde_json::to_string(&config).unwrap();
         let parsed: NarConfig = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(config.model_path, parsed.model_path);
     }
 }

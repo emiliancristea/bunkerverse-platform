@@ -89,48 +89,51 @@ async fn generate_nonce(
 ) -> Result<Json<NonceResponse>, StatusCode> {
     let nonce = generate_random_nonce();
     let expires_at = chrono::Utc::now() + chrono::Duration::minutes(10);
-    
+
     {
         let mut nonces = state.nonces.write().await;
         nonces.insert(payload.email.clone(), (nonce.clone(), expires_at));
     }
-    
+
     info!("Generated nonce for email: {}", payload.email);
-    
-    Ok(Json(NonceResponse {
-        nonce,
-        expires_at,
-    }))
+
+    Ok(Json(NonceResponse { nonce, expires_at }))
 }
 
 async fn zklogin(
-    State(state): State<AppState>, 
+    State(state): State<AppState>,
     Json(payload): Json<LoginRequest>,
 ) -> Result<Json<LoginResponse>, StatusCode> {
-    info!("zkLogin attempt for email: {} with provider: {}", payload.email, payload.provider);
-    
+    info!(
+        "zkLogin attempt for email: {} with provider: {}",
+        payload.email, payload.provider
+    );
+
     // In a real implementation, we would:
     // 1. Verify the JWT token with the provider
     // 2. Generate ZK proof of identity
     // 3. Validate the proof against the nonce
-    
+
     // For PoC: simulate the verification
     let nonce = {
         let nonces = state.nonces.read().await;
-        nonces.get(&payload.email).map(|(n, expires)| {
-            if expires > &chrono::Utc::now() {
-                n.clone()
-            } else {
-                return String::new();
-            }
-        }).unwrap_or_default()
+        nonces
+            .get(&payload.email)
+            .map(|(n, expires)| {
+                if expires > &chrono::Utc::now() {
+                    n.clone()
+                } else {
+                    return String::new();
+                }
+            })
+            .unwrap_or_default()
     };
-    
+
     if nonce.is_empty() {
         warn!("No valid nonce found for email: {}", payload.email);
         return Err(StatusCode::UNAUTHORIZED);
     }
-    
+
     // Create or get user
     let user = {
         let mut users = state.users.write().await;
@@ -145,25 +148,25 @@ async fn zklogin(
         users.insert(user_id, user.clone());
         user
     };
-    
+
     // Generate access token
     let access_token = generate_access_token(&user);
-    
+
     // Store session
     {
         let mut sessions = state.sessions.write().await;
         sessions.insert(access_token.clone(), user.id);
     }
-    
+
     // Generate simulated ZK proof (in real implementation this would be cryptographic)
     let zkproof = if state.enable_crypto {
         Some(generate_simulated_zkproof(&user, &nonce))
     } else {
         None
     };
-    
+
     info!("Successfully created session for user: {}", user.id);
-    
+
     Ok(Json(LoginResponse {
         access_token,
         user,
@@ -177,7 +180,7 @@ async fn verify_token(
 ) -> Result<Json<VerifyResponse>, StatusCode> {
     let sessions = state.sessions.read().await;
     let users = state.users.read().await;
-    
+
     if let Some(user_id) = sessions.get(&payload.access_token) {
         if let Some(user) = users.get(user_id) {
             info!("Token verified for user: {}", user.id);
@@ -187,7 +190,7 @@ async fn verify_token(
             }));
         }
     }
-    
+
     warn!("Invalid token provided");
     Ok(Json(VerifyResponse {
         valid: false,
@@ -200,7 +203,7 @@ async fn logout(
     Json(payload): Json<VerifyRequest>,
 ) -> Result<StatusCode, StatusCode> {
     let mut sessions = state.sessions.write().await;
-    
+
     if sessions.remove(&payload.access_token).is_some() {
         info!("User logged out successfully");
         Ok(StatusCode::NO_CONTENT)
@@ -215,16 +218,16 @@ async fn get_user_info(
     Query(params): Query<HashMap<String, String>>,
 ) -> Result<Json<User>, StatusCode> {
     let token = params.get("access_token").ok_or(StatusCode::BAD_REQUEST)?;
-    
+
     let sessions = state.sessions.read().await;
     let users = state.users.read().await;
-    
+
     if let Some(user_id) = sessions.get(token) {
         if let Some(user) = users.get(user_id) {
             return Ok(Json(user.clone()));
         }
     }
-    
+
     Err(StatusCode::UNAUTHORIZED)
 }
 
@@ -232,7 +235,10 @@ async fn get_user_info(
 fn generate_random_nonce() -> String {
     use rand::Rng;
     let mut rng = rand::thread_rng();
-    (0..32).map(|_| rng.gen_range(0..16)).map(|n| format!("{:x}", n)).collect()
+    (0..32)
+        .map(|_| rng.gen_range(0..16))
+        .map(|n| format!("{:x}", n))
+        .collect()
 }
 
 fn generate_access_token(user: &User) -> String {
@@ -242,7 +248,7 @@ fn generate_access_token(user: &User) -> String {
 
 fn generate_simulated_zkproof(user: &User, nonce: &str) -> String {
     // Simulated ZK proof - in reality this would be a complex cryptographic proof
-    use base64::{Engine as _, engine::general_purpose};
+    use base64::{engine::general_purpose, Engine as _};
     let proof_data = format!("zkproof:{}:{}:{}", user.email, nonce, user.created_at);
     general_purpose::STANDARD.encode(proof_data.as_bytes())
 }
@@ -251,13 +257,13 @@ fn generate_simulated_zkproof(user: &User, nonce: &str) -> String {
 async fn main() -> anyhow::Result<()> {
     // Initialize tracing
     tracing_subscriber::fmt::init();
-    
+
     info!("🚀 Starting Bunkerverse Identity Service (zkLogin PoC)");
-    
+
     let state = AppState::new();
-    
+
     info!("🔐 Crypto features enabled: {}", state.enable_crypto);
-    
+
     // Build the router
     let app = Router::new()
         .route("/health", get(health_check))
@@ -268,12 +274,12 @@ async fn main() -> anyhow::Result<()> {
         .route("/user/info", get(get_user_info))
         .layer(CorsLayer::permissive())
         .with_state(state);
-    
+
     // Start the server
     let listener = tokio::net::TcpListener::bind("0.0.0.0:3001").await?;
     info!("🌐 Identity service listening on http://0.0.0.0:3001");
-    
+
     axum::serve(listener, app).await?;
-    
+
     Ok(())
 }

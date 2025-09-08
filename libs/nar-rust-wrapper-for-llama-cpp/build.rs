@@ -4,12 +4,12 @@ use std::path::PathBuf;
 fn main() {
     println!("cargo:rerun-if-changed=build.rs");
     println!("cargo:rerun-if-changed=src/");
-    
+
     // For PoC, we'll create a simple mock FFI interface
     // In a real implementation, this would build llama.cpp and generate bindings
-    
+
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
-    
+
     // Create a mock header for bindgen
     let mock_header = r#"
 typedef struct llama_context llama_context;
@@ -59,9 +59,9 @@ int llama_n_ctx(llama_context* ctx);
 int llama_n_embd(llama_context* ctx);
 int llama_n_vocab(llama_context* ctx);
 "#;
-    
+
     std::fs::write(out_path.join("llama_mock.h"), mock_header).unwrap();
-    
+
     // Generate bindings
     let bindings = bindgen::Builder::default()
         .header(out_path.join("llama_mock.h").to_string_lossy())
@@ -72,7 +72,7 @@ int llama_n_vocab(llama_context* ctx);
     bindings
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Couldn't write bindings!");
-    
+
     // For PoC, we'll create mock implementations
     let mock_impl = r#"
 // Mock implementations for PoC testing
@@ -144,13 +144,13 @@ int llama_n_ctx(llama_context* ctx) { return 2048; }
 int llama_n_embd(llama_context* ctx) { return 4096; }
 int llama_n_vocab(llama_context* ctx) { return 32000; }
 "#;
-    
+
     std::fs::write(out_path.join("llama_mock.c"), mock_impl).unwrap();
-    
+
     // Compile the mock implementation
     cc::Build::new()
         .file(out_path.join("llama_mock.c"))
         .compile("llama_mock");
-    
+
     println!("cargo:rustc-link-lib=llama_mock");
 }
