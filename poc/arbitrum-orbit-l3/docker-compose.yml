@@ -1,0 +1,110 @@
+# Arbitrum Orbit L3 PoC - Full Settlement Chain
+# L3 (Bunkerverse) -> L2 (Arbitrum One) -> L1 (Ethereum)
+
+version: '3.8'
+
+services:
+  # L1: Ethereum Testnet (Anvil)
+  ethereum-l1:
+    image: ghcr.io/foundry-rs/foundry:latest
+    container_name: bunkerverse-l1-ethereum
+    command: >
+      anvil 
+      --host 0.0.0.0 
+      --port 8545 
+      --chain-id 31337
+      --accounts 10
+      --balance 10000
+      --gas-limit 30000000
+    ports:
+      - "8545:8545"
+    networks:
+      - orbit-chain
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "8545"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  # L2: Arbitrum One Local Node
+  arbitrum-l2:
+    image: offchainlabs/nitro-node:v2.3.4-b4cc111
+    container_name: bunkerverse-l2-arbitrum
+    depends_on:
+      ethereum-l1:
+        condition: service_healthy
+    environment:
+      - L1_RPC_URL=http://ethereum-l1:8545
+    command: >
+      --parent-chain.connection.url=http://ethereum-l1:8545
+      --chain.id=42161
+      --http.addr=0.0.0.0
+      --http.port=8547
+      --http.corsdomain=*
+      --http.vhosts=*
+      --ws.addr=0.0.0.0
+      --ws.port=8548
+      --node.data-availability.enable=true
+      --init.dev-init=true
+      --init.dev-init-address=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+    ports:
+      - "8547:8547"  # HTTP RPC
+      - "8548:8548"  # WebSocket
+    networks:
+      - orbit-chain
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8547"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  # L3: Bunkerverse Orbit Chain
+  bunkerverse-l3:
+    image: offchainlabs/nitro-node:v2.3.4-b4cc111
+    container_name: bunkerverse-l3-orbit
+    depends_on:
+      arbitrum-l2:
+        condition: service_healthy
+    environment:
+      - PARENT_CHAIN_RPC=http://arbitrum-l2:8547
+      - CHAIN_ID=33701
+      - CHAIN_NAME=bunkerverse
+      - NATIVE_TOKEN=NTC
+    command: >
+      --parent-chain.connection.url=http://arbitrum-l2:8547
+      --chain.id=33701
+      --http.addr=0.0.0.0
+      --http.port=8549
+      --http.corsdomain=*
+      --http.vhosts=*
+      --ws.addr=0.0.0.0
+      --ws.port=8550
+      --node.data-availability.enable=true
+      --init.dev-init=true
+      --init.dev-init-address=0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266
+      --node.feed.output.enable=false
+      --node.feed.input.enable=false
+    ports:
+      - "8549:8549"  # HTTP RPC  
+      - "8550:8550"  # WebSocket
+    volumes:
+      - l3_data:/home/user/.arbitrum
+    networks:
+      - orbit-chain
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8549"]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+      start_period: 45s
+
+volumes:
+  l1_data:
+  l2_data:
+  l3_data:
+
+networks:
+  orbit-chain:
+    driver: bridge

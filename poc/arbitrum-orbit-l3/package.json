@@ -1,0 +1,25 @@
+{
+  "name": "bunkerverse-orbit-l3-poc",
+  "version": "1.0.0",
+  "description": "Arbitrum Orbit L3 Framework PoC - Smart Contract Deployment and Testing",
+  "main": "index.js",
+  "scripts": {
+    "compile": "npx hardhat compile",
+    "deploy:l3": "npx hardhat run scripts/deploy.js --network bunkerverse-l3",
+    "test:l3": "npx hardhat run scripts/test-nft.js --network bunkerverse-l3",
+    "validate": "npx hardhat run scripts/validate-l3.js --network bunkerverse-l3",
+    "setup": "npm install && npm run compile",
+    "poc": "npm run deploy:l3 && npm run test:l3 && npm run validate"
+  },
+  "keywords": ["arbitrum", "orbit", "l3", "nft", "poc", "bunkerverse"],
+  "author": "BUNKER CORPORATION",
+  "license": "MIT",
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.0"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "^5.0.0",
+    "ethers": "^6.8.0"
+  }
+}

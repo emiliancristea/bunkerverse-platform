@@ -47,7 +47,8 @@
       "Bash(QMAKE=\"/d/DOCUMENTS/Qt/6.9.2/msvc2022_64/bin/qmake.exe\" QT_INCLUDE_PATH=\"/d/DOCUMENTS/Qt/6.9.2/msvc2022_64/include\" QT_LIBRARY_PATH=\"/d/DOCUMENTS/Qt/6.9.2/msvc2022_64/lib\" QTDIR=\"/d/DOCUMENTS/Qt/6.9.2/msvc2022_64\" cargo build)",
       "Bash(QMAKE=\"/d/DOCUMENTS/Qt/6.9.2/msvc2022_64/bin/qmake.exe\" QT_INCLUDE_PATH=\"/d/DOCUMENTS/Qt/6.9.2/msvc2022_64/include\" QT_LIBRARY_PATH=\"/d/DOCUMENTS/Qt/6.9.2/msvc2022_64/lib\" QTDIR=\"/d/DOCUMENTS/Qt/6.9.2/msvc2022_64\" cargo run)",
       "Bash(QMAKE=\"/d/DOCUMENTS/Qt/6.9.2/msvc2022_64/bin/qmake.exe\" QT_INCLUDE_PATH=\"/d/DOCUMENTS/Qt/6.9.2/msvc2022_64/include\" QT_LIBRARY_PATH=\"/d/DOCUMENTS/Qt/6.9.2/msvc2022_64/lib\" QTDIR=\"/d/DOCUMENTS/Qt/6.9.2/msvc2022_64\" cargo check)",
-      "Bash(git show:*)"
+      "Bash(git show:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []
