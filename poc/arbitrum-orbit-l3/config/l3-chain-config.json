@@ -1,0 +1,177 @@
+{
+  "chainName": "Netchain",
+  "chainId": 33701,
+  "description": "Netchain L3 - High-performance blockchain for Bunkerverse Platform",
+  "nativeToken": {
+    "name": "Netchain Token",
+    "symbol": "NTC",
+    "decimals": 18,
+    "initialSupply": "100000000000000000000000000000",
+    "maxSupply": "unlimited",
+    "contractAddress": null,
+    "mintingPolicy": "owner-controlled",
+    "burningEnabled": true,
+    "gasRebateEnabled": true,
+    "gasRebateRate": 1000
+  },
+  "consensus": {
+    "type": "arbitrum-orbit",
+    "settlementLayer": "arbitrum-one",
+    "validatorSet": "permissioned",
+    "challengePeriod": 604800,
+    "blockTime": 0.25,
+    "batchSubmissionFrequency": 10
+  },
+  "network": {
+    "rpcUrl": "http://localhost:8547",
+    "wsUrl": "ws://localhost:8548",
+    "explorerUrl": "http://localhost:4000",
+    "faucetUrl": "http://localhost:3001/faucet",
+    "bridgeUrl": "http://localhost:3000/bridge"
+  },
+  "gas": {
+    "minGasPrice": "100000000",
+    "maxGasPrice": "1000000000000",
+    "gasLimit": "1000000000",
+    "targetGasUsage": 0.7,
+    "baseFeeMultiplier": 1.125,
+    "priorityFeePerGas": "1000000000"
+  },
+  "security": {
+    "fraudProofWindow": 604800,
+    "withdrawalDelay": 604800,
+    "multisigThreshold": "2/3",
+    "upgradeDelay": 259200,
+    "emergencyPauseEnabled": true,
+    "rateLimitingEnabled": true,
+    "maxTxPerSecond": 4000
+  },
+  "deployment": {
+    "rollupAddress": null,
+    "inboxAddress": null,
+    "outboxAddress": null,
+    "bridgeAddress": null,
+    "sequencerAddress": null,
+    "validatorManagerAddress": null,
+    "deploymentBlock": null,
+    "genesisTimestamp": null
+  },
+  "features": {
+    "eip1559": true,
+    "eip2930": true,
+    "precompiles": [
+      "ecrecover",
+      "sha256",
+      "ripemd160",
+      "identity",
+      "modexp",
+      "ecadd",
+      "ecmul",
+      "ecpairing",
+      "blake2f"
+    ],
+    "customPrecompiles": [
+      {
+        "address": "0x0000000000000000000000000000000000000100",
+        "name": "GameStateManager",
+        "description": "Optimized game state management precompile"
+      },
+      {
+        "address": "0x0000000000000000000000000000000000000101", 
+        "name": "NFTMetadataOracle",
+        "description": "IPFS metadata resolution precompile"
+      }
+    ],
+    "dataAvailability": "local",
+    "compression": "brotli",
+    "stateRootPublishing": true
+  },
+  "monitoring": {
+    "metricsEnabled": true,
+    "metricsPort": 6060,
+    "healthCheckEndpoint": "/health",
+    "prometheusEnabled": true,
+    "grafanaDashboard": true,
+    "alerting": {
+      "enabled": true,
+      "webhookUrl": null,
+      "slackChannel": null,
+      "emailNotifications": []
+    }
+  },
+  "development": {
+    "mode": "development",
+    "debugLogging": true,
+    "profileCollection": false,
+    "testnetFaucet": {
+      "enabled": true,
+      "dailyLimit": "1000000000000000000000",
+      "requestCooldown": 86400
+    },
+    "fastFinality": true,
+    "skipValidation": false
+  },
+  "contracts": {
+    "gameEngine": {
+      "address": null,
+      "deployer": null,
+      "verificationStatus": "pending"
+    },
+    "nftMarketplace": {
+      "address": null,
+      "deployer": null,
+      "verificationStatus": "pending"
+    },
+    "rewardSystem": {
+      "address": null,
+      "deployer": null,
+      "verificationStatus": "pending"
+    },
+    "governance": {
+      "address": null,
+      "deployer": null,
+      "verificationStatus": "pending"
+    }
+  },
+  "performance": {
+    "targetTPS": 4000,
+    "averageBlockTime": 250,
+    "finalityTime": 1000,
+    "memPoolSize": 10000,
+    "txQueueSize": 50000,
+    "batchSize": 1000,
+    "compressionRatio": 0.3
+  },
+  "interoperability": {
+    "parentChainId": 42161,
+    "bridgeProtocols": ["arbitrum-canonical", "layerzero", "cctp"],
+    "supportedAssets": [
+      {
+        "symbol": "ETH",
+        "l1Address": "0x0000000000000000000000000000000000000000",
+        "l2Address": null,
+        "bridgeType": "native"
+      },
+      {
+        "symbol": "USDC",
+        "l1Address": "0xA0b86a33E6441E2C6D45E7e92F4602c48A10F3D5",
+        "l2Address": null,
+        "bridgeType": "standard"
+      },
+      {
+        "symbol": "WETH",
+        "l1Address": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1",
+        "l2Address": null,
+        "bridgeType": "standard"
+      }
+    ]
+  },
+  "compliance": {
+    "kycRequired": false,
+    "sanctionsScreening": false,
+    "dataRetention": 2592000,
+    "gdprCompliant": true,
+    "auditTrail": true,
+    "privacyMode": "pseudonymous"
+  }
+}
