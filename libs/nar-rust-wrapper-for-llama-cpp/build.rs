@@ -82,6 +82,37 @@ int llama_n_vocab(llama_context* ctx);
 #include <string.h>
 #include <stdio.h>
 
+typedef int llama_token;
+
+struct llama_model_params {
+    int n_gpu_layers;
+    int main_gpu;
+    float *tensor_split;
+    int vocab_only;
+    int use_mmap;
+    int use_mlock;
+};
+
+struct llama_context_params {
+    unsigned int seed;
+    int n_ctx;
+    int n_batch;
+    int n_threads;
+    int n_threads_batch;
+    float rope_freq_base;
+    float rope_freq_scale;
+    int n_gqa;
+    float rms_norm_eps;
+    int rope_scaling_type;
+    int yarn_ext_factor;
+    int yarn_attn_factor;
+    float yarn_beta_fast;
+    float yarn_beta_slow;
+    int yarn_orig_ctx;
+    int embedding;
+    int offload_kqv;
+};
+
 typedef struct llama_context {
     int dummy;
 } llama_context;

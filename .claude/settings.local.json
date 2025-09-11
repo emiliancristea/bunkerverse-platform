@@ -53,7 +53,8 @@
       "Bash(do if [ ! -f \"$dirSECURITY_ASSESSMENT.md\" ])",
       "Bash(git --version)",
       "Bash(buf lint:*)",
-      "Bash(buf mod:*)"
+      "Bash(buf mod:*)",
+      "Bash(buf dep update:*)"
     ],
     "deny": [],
     "ask": []

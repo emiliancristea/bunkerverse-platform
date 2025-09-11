@@ -129,3 +129,6 @@ helm-*.zip
 coverage/
 test-results/
 reports/
+
+# Development planning files (keep local only)
+development-plan/

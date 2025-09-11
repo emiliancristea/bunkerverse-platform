@@ -1,0 +1,27 @@
+// =============================================================================
+// BUNKERVERSE Platform - Health Service Protobuf Definitions
+// Shared health check messages for all services
+// =============================================================================
+
+syntax = "proto3";
+
+package bunkerverse.services.v1;
+
+option go_package = "bunkerverse/services/v1";
+
+// ============================================================================
+// Shared Health Check Messages
+// ============================================================================
+
+/// Standard health check request
+message HealthRequest {
+  string trace_id = 1;                     // Optional: Request tracing ID
+}
+
+/// Standard health check response
+message HealthResponse {
+  string status = 1;                       // "OK", "DEGRADED", or "UNHEALTHY"
+  string version = 2;                      // Service version string
+  int64 timestamp = 3;                     // Response timestamp (Unix seconds)
+  map<string, string> details = 4;        // Additional health details (optional)
+}
