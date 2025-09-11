@@ -728,7 +728,7 @@ message ContextOptimizationProto {
 message LoreDatabaseProto {
   string database_version = 1;            // Lore database version
   repeated LoreEntryProto lore_entries = 2; // Lore entries
-  map<string, repeated string> lore_categories = 3; // Lore organized by category
+  map<string, string> lore_categories = 3; // Lore organized by category (comma-separated entries)
   repeated string recently_updated_entries = 4; // Recently updated lore
   
   // Player-specific data
