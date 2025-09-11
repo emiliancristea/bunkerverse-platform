@@ -100,7 +100,7 @@ message AgentChainStateProto {
   string player_id = 1;                     // UUID v4, validated: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
   BalancesProto balances = 2;
   ActiveBunkerguardDataProto active_bunkerguard = 3;
-  map<string, repeated string> owned_nft_ids_by_type = 4; // key: ItemTypeProto name
+  map<string, string> owned_nft_ids_by_type = 4; // key: ItemTypeProto name, value: comma-separated NFT IDs
   
   // On-chain fields - active in MVE on L3
   NtcStakingDetailsProto ntc_staking = 5;   // Active on L3 chain
