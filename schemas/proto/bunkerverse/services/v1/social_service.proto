@@ -1,0 +1,970 @@
+syntax = "proto3";
+
+package bunkerverse.services.v1;
+
+import "bunkerverse/core/v1/types.proto";
+import "bunkerverse/core/v1/enums.proto";
+
+// Social Service - Chat, friends, and social interactions
+service SocialService {
+  // Friend management
+  rpc SendFriendRequest(SendFriendRequestRequest) returns (SendFriendRequestResponse);
+  rpc AcceptFriendRequest(AcceptFriendRequestRequest) returns (AcceptFriendRequestResponse);
+  rpc RejectFriendRequest(RejectFriendRequestRequest) returns (RejectFriendRequestResponse);
+  rpc RemoveFriend(RemoveFriendRequest) returns (RemoveFriendResponse);
+  rpc GetFriendsList(GetFriendsListRequest) returns (GetFriendsListResponse);
+  rpc GetFriendRequests(GetFriendRequestsRequest) returns (GetFriendRequestsResponse);
+  
+  // Player search and discovery
+  rpc SearchPlayers(SearchPlayersRequest) returns (SearchPlayersResponse);
+  rpc GetPlayerPublicProfile(GetPlayerPublicProfileRequest) returns (GetPlayerPublicProfileResponse);
+  rpc BlockPlayer(BlockPlayerRequest) returns (BlockPlayerResponse);
+  rpc UnblockPlayer(UnblockPlayerRequest) returns (UnblockPlayerResponse);
+  rpc GetBlockedPlayers(GetBlockedPlayersRequest) returns (GetBlockedPlayersResponse);
+  
+  // Chat and messaging
+  rpc SendDirectMessage(SendDirectMessageRequest) returns (SendDirectMessageResponse);
+  rpc GetDirectMessages(GetDirectMessagesRequest) returns (GetDirectMessagesResponse);
+  rpc MarkMessagesAsRead(MarkMessagesAsReadRequest) returns (MarkMessagesAsReadResponse);
+  rpc DeleteMessage(DeleteMessageRequest) returns (DeleteMessageResponse);
+  
+  // Group chat functionality
+  rpc CreateChatGroup(CreateChatGroupRequest) returns (CreateChatGroupResponse);
+  rpc JoinChatGroup(JoinChatGroupRequest) returns (JoinChatGroupResponse);
+  rpc LeaveChatGroup(LeaveChatGroupRequest) returns (LeaveChatGroupResponse);
+  rpc SendGroupMessage(SendGroupMessageRequest) returns (SendGroupMessageResponse);
+  rpc GetGroupMessages(GetGroupMessagesRequest) returns (GetGroupMessagesResponse);
+  rpc GetChatGroups(GetChatGroupsRequest) returns (GetChatGroupsResponse);
+  
+  // Social features
+  rpc GetActivityFeed(GetActivityFeedRequest) returns (GetActivityFeedResponse);
+  rpc CreatePost(CreatePostRequest) returns (CreatePostResponse);
+  rpc LikePost(LikePostRequest) returns (LikePostResponse);
+  rpc CommentOnPost(CommentOnPostRequest) returns (CommentOnPostResponse);
+  rpc GetPostComments(GetPostCommentsRequest) returns (GetPostCommentsResponse);
+  
+  // Presence and status
+  rpc UpdatePlayerStatus(UpdatePlayerStatusRequest) returns (UpdatePlayerStatusResponse);
+  rpc GetOnlineFriends(GetOnlineFriendsRequest) returns (GetOnlineFriendsResponse);
+  rpc SetPresence(SetPresenceRequest) returns (SetPresenceResponse);
+  
+  // Health check
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+// Friend management messages
+message SendFriendRequestRequest {
+  string requester_player_id = 1;         // Player sending request (from JWT)
+  string target_player_id = 2;            // Player to send request to
+  string message = 3;                     // Optional message with request
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message SendFriendRequestResponse {
+  oneof result {
+    SendFriendRequestSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message SendFriendRequestSuccess {
+  string friend_request_id = 1;           // Unique friend request identifier
+  int64 sent_timestamp = 2;               // When request was sent
+  bool request_sent = 3;                  // Confirmation request was sent
+}
+
+message AcceptFriendRequestRequest {
+  string player_id = 1;                   // Player accepting request (from JWT)
+  string friend_request_id = 2;           // Friend request identifier
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message AcceptFriendRequestResponse {
+  oneof result {
+    AcceptFriendRequestSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message AcceptFriendRequestSuccess {
+  FriendshipProto new_friendship = 1;     // New friendship details
+  int64 accepted_timestamp = 2;           // When request was accepted
+}
+
+message RejectFriendRequestRequest {
+  string player_id = 1;                   // Player rejecting request (from JWT)
+  string friend_request_id = 2;           // Friend request identifier
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message RejectFriendRequestResponse {
+  oneof result {
+    RejectFriendRequestSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message RejectFriendRequestSuccess {
+  bool request_rejected = 1;              // Confirmation request was rejected
+  int64 rejected_timestamp = 2;           // When request was rejected
+}
+
+message RemoveFriendRequest {
+  string player_id = 1;                   // Player removing friend (from JWT)
+  string friend_player_id = 2;            // Friend to remove
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message RemoveFriendResponse {
+  oneof result {
+    RemoveFriendSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message RemoveFriendSuccess {
+  bool friend_removed = 1;                // Confirmation friend was removed
+  int64 removed_timestamp = 2;            // When friendship was ended
+}
+
+message GetFriendsListRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  FriendFiltersProto filters = 3;         // Optional filters
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message GetFriendsListResponse {
+  oneof result {
+    GetFriendsListSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetFriendsListSuccess {
+  repeated FriendProto friends = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  uint32 online_friends_count = 3;        // Number of currently online friends
+}
+
+message GetFriendRequestsRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  FriendRequestTypeProto request_type = 2; // SENT, RECEIVED, or ALL
+  bunkerverse.core.v1.PaginationProto pagination = 3;
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message GetFriendRequestsResponse {
+  oneof result {
+    GetFriendRequestsSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetFriendRequestsSuccess {
+  repeated FriendRequestProto friend_requests = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  uint32 pending_received_count = 3;      // Count of pending received requests
+}
+
+// Player search and discovery messages
+message SearchPlayersRequest {
+  string searching_player_id = 1;         // Player performing search (from JWT)
+  string search_query = 2;                // Search query (bunker tag or display name)
+  bunkerverse.core.v1.PaginationProto pagination = 3;
+  PlayerSearchFiltersProto filters = 4;   // Optional search filters
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message SearchPlayersResponse {
+  oneof result {
+    SearchPlayersSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message SearchPlayersSuccess {
+  repeated PlayerSearchResultProto players = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  repeated string search_suggestions = 3; // Alternative search suggestions
+}
+
+message GetPlayerPublicProfileRequest {
+  string requesting_player_id = 1;        // Player making request (from JWT)
+  string target_player_id = 2;            // Player profile to view
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message GetPlayerPublicProfileResponse {
+  oneof result {
+    PlayerPublicProfileProto profile = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message BlockPlayerRequest {
+  string player_id = 1;                   // Player doing the blocking (from JWT)
+  string blocked_player_id = 2;           // Player to block
+  string block_reason = 3;                // Reason for blocking
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message BlockPlayerResponse {
+  oneof result {
+    BlockPlayerSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message BlockPlayerSuccess {
+  bool player_blocked = 1;                // Confirmation player was blocked
+  int64 blocked_timestamp = 2;            // When player was blocked
+}
+
+message UnblockPlayerRequest {
+  string player_id = 1;                   // Player doing the unblocking (from JWT)
+  string blocked_player_id = 2;           // Player to unblock
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message UnblockPlayerResponse {
+  oneof result {
+    UnblockPlayerSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message UnblockPlayerSuccess {
+  bool player_unblocked = 1;              // Confirmation player was unblocked
+  int64 unblocked_timestamp = 2;          // When player was unblocked
+}
+
+message GetBlockedPlayersRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message GetBlockedPlayersResponse {
+  oneof result {
+    GetBlockedPlayersSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetBlockedPlayersSuccess {
+  repeated BlockedPlayerProto blocked_players = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+}
+
+// Chat and messaging messages
+message SendDirectMessageRequest {
+  string sender_player_id = 1;            // Message sender (from JWT)
+  string recipient_player_id = 2;         // Message recipient
+  string message_content = 3;             // Message text (max 2000 chars)
+  MessageTypeProto message_type = 4;      // Message type
+  optional string attachment_url = 5;     // Optional attachment URL
+  string trace_id = 6;                    // Request tracing ID
+}
+
+message SendDirectMessageResponse {
+  oneof result {
+    SendDirectMessageSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message SendDirectMessageSuccess {
+  DirectMessageProto sent_message = 1;    // The sent message details
+  int64 sent_timestamp = 2;               // Message send timestamp
+}
+
+message GetDirectMessagesRequest {
+  string player_id = 1;                   // Player requesting messages (from JWT)
+  string conversation_with_player_id = 2; // Other participant in conversation
+  bunkerverse.core.v1.PaginationProto pagination = 3;
+  optional int64 since_timestamp = 4;     // Only messages after this time
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message GetDirectMessagesResponse {
+  oneof result {
+    GetDirectMessagesSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetDirectMessagesSuccess {
+  repeated DirectMessageProto messages = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  ConversationInfoProto conversation_info = 3; // Conversation metadata
+}
+
+message MarkMessagesAsReadRequest {
+  string player_id = 1;                   // Player marking messages as read (from JWT)
+  repeated string message_ids = 2;        // Message IDs to mark as read
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message MarkMessagesAsReadResponse {
+  oneof result {
+    MarkMessagesAsReadSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message MarkMessagesAsReadSuccess {
+  uint32 messages_marked_read = 1;        // Number of messages marked as read
+  int64 marked_timestamp = 2;             // When messages were marked read
+}
+
+message DeleteMessageRequest {
+  string player_id = 1;                   // Player deleting message (from JWT)
+  string message_id = 2;                  // Message ID to delete
+  bool delete_for_both = 3;               // Delete for both participants (if sender)
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message DeleteMessageResponse {
+  oneof result {
+    DeleteMessageSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message DeleteMessageSuccess {
+  bool message_deleted = 1;               // Confirmation message was deleted
+  bool deleted_for_both = 2;              // Whether deleted for both participants
+  int64 deleted_timestamp = 3;            // When message was deleted
+}
+
+// Group chat messages
+message CreateChatGroupRequest {
+  string creator_player_id = 1;           // Group creator (from JWT)
+  string group_name = 2;                  // Group name (max 64 chars)
+  string group_description = 3;           // Group description (max 256 chars)
+  repeated string initial_member_ids = 4; // Initial group members
+  ChatGroupTypeProto group_type = 5;      // Group type
+  bool is_private = 6;                    // Whether group is private
+  string trace_id = 7;                    // Request tracing ID
+}
+
+message CreateChatGroupResponse {
+  oneof result {
+    CreateChatGroupSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message CreateChatGroupSuccess {
+  ChatGroupProto created_group = 1;       // Created group details
+  int64 created_timestamp = 2;            // Group creation timestamp
+}
+
+message JoinChatGroupRequest {
+  string player_id = 1;                   // Player joining group (from JWT)
+  string group_id = 2;                    // Group identifier
+  optional string join_code = 3;          // Join code for private groups
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message JoinChatGroupResponse {
+  oneof result {
+    JoinChatGroupSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message JoinChatGroupSuccess {
+  ChatGroupProto joined_group = 1;        // Joined group details
+  int64 joined_timestamp = 2;             // Join timestamp
+}
+
+message LeaveChatGroupRequest {
+  string player_id = 1;                   // Player leaving group (from JWT)
+  string group_id = 2;                    // Group identifier
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message LeaveChatGroupResponse {
+  oneof result {
+    LeaveChatGroupSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message LeaveChatGroupSuccess {
+  bool left_group = 1;                    // Confirmation player left group
+  int64 left_timestamp = 2;               // Leave timestamp
+}
+
+message SendGroupMessageRequest {
+  string sender_player_id = 1;            // Message sender (from JWT)
+  string group_id = 2;                    // Target group ID
+  string message_content = 3;             // Message text (max 2000 chars)
+  MessageTypeProto message_type = 4;      // Message type
+  optional string attachment_url = 5;     // Optional attachment URL
+  optional string reply_to_message_id = 6; // ID of message being replied to
+  string trace_id = 7;                    // Request tracing ID
+}
+
+message SendGroupMessageResponse {
+  oneof result {
+    SendGroupMessageSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message SendGroupMessageSuccess {
+  GroupMessageProto sent_message = 1;     // The sent group message details
+  int64 sent_timestamp = 2;               // Message send timestamp
+}
+
+message GetGroupMessagesRequest {
+  string player_id = 1;                   // Player requesting messages (from JWT)
+  string group_id = 2;                    // Group identifier
+  bunkerverse.core.v1.PaginationProto pagination = 3;
+  optional int64 since_timestamp = 4;     // Only messages after this time
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message GetGroupMessagesResponse {
+  oneof result {
+    GetGroupMessagesSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetGroupMessagesSuccess {
+  repeated GroupMessageProto messages = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  ChatGroupProto group_info = 3;          // Group information
+}
+
+message GetChatGroupsRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  ChatGroupFiltersProto filters = 3;      // Optional filters
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message GetChatGroupsResponse {
+  oneof result {
+    GetChatGroupsSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetChatGroupsSuccess {
+  repeated ChatGroupProto groups = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  uint32 unread_messages_count = 3;       // Total unread messages across all groups
+}
+
+// Social features messages
+message GetActivityFeedRequest {
+  string player_id = 1;                   // Player requesting feed (from JWT)
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  ActivityFeedFiltersProto filters = 3;   // Optional filters
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message GetActivityFeedResponse {
+  oneof result {
+    GetActivityFeedSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetActivityFeedSuccess {
+  repeated ActivityPostProto posts = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  uint32 new_posts_count = 3;             // Number of new posts since last check
+}
+
+message CreatePostRequest {
+  string author_player_id = 1;            // Post author (from JWT)
+  string post_content = 2;                // Post text (max 500 chars)
+  PostTypeProto post_type = 3;            // Type of post
+  repeated string attachment_urls = 4;     // Optional attachments
+  PostVisibilityProto visibility = 5;     // Post visibility settings
+  repeated string tag_player_ids = 6;     // Players to tag in post
+  string trace_id = 7;                    // Request tracing ID
+}
+
+message CreatePostResponse {
+  oneof result {
+    CreatePostSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message CreatePostSuccess {
+  ActivityPostProto created_post = 1;     // Created post details
+  int64 created_timestamp = 2;            // Post creation timestamp
+}
+
+message LikePostRequest {
+  string player_id = 1;                   // Player liking post (from JWT)
+  string post_id = 2;                     // Post to like
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message LikePostResponse {
+  oneof result {
+    LikePostSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message LikePostSuccess {
+  bool post_liked = 1;                    // Whether post was liked (true) or unliked (false)
+  uint32 new_like_count = 2;              // New total like count
+  int64 action_timestamp = 3;             // When like/unlike occurred
+}
+
+message CommentOnPostRequest {
+  string commenter_player_id = 1;         // Player commenting (from JWT)
+  string post_id = 2;                     // Post to comment on
+  string comment_content = 3;             // Comment text (max 300 chars)
+  optional string reply_to_comment_id = 4; // ID of comment being replied to
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message CommentOnPostResponse {
+  oneof result {
+    CommentOnPostSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message CommentOnPostSuccess {
+  PostCommentProto created_comment = 1;   // Created comment details
+  uint32 new_comment_count = 2;           // New total comment count for post
+  int64 created_timestamp = 3;            // Comment creation timestamp
+}
+
+message GetPostCommentsRequest {
+  string player_id = 1;                   // Player requesting comments (from JWT)
+  string post_id = 2;                     // Post to get comments for
+  bunkerverse.core.v1.PaginationProto pagination = 3;
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message GetPostCommentsResponse {
+  oneof result {
+    GetPostCommentsSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetPostCommentsSuccess {
+  repeated PostCommentProto comments = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  ActivityPostProto post_info = 3;        // Post information
+}
+
+// Presence and status messages
+message UpdatePlayerStatusRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string status_message = 2;              // Custom status message (max 100 chars)
+  PlayerActivityStatusProto activity_status = 3; // Activity status
+  bool show_activity = 4;                 // Whether to show current activity to friends
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message UpdatePlayerStatusResponse {
+  oneof result {
+    UpdatePlayerStatusSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message UpdatePlayerStatusSuccess {
+  PlayerStatusProto updated_status = 1;   // Updated status information
+  int64 updated_timestamp = 2;            // Status update timestamp
+}
+
+message GetOnlineFriendsRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string trace_id = 2;                    // Request tracing ID
+}
+
+message GetOnlineFriendsResponse {
+  oneof result {
+    GetOnlineFriendsSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetOnlineFriendsSuccess {
+  repeated OnlineFriendProto online_friends = 1;
+  uint32 total_online_count = 2;          // Total online friends count
+}
+
+message SetPresenceRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  PresenceStatusProto presence_status = 2; // Online, away, busy, invisible
+  optional string current_activity = 3;   // Current activity description
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message SetPresenceResponse {
+  oneof result {
+    SetPresenceSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message SetPresenceSuccess {
+  PresenceStatusProto new_presence = 1;   // New presence status
+  int64 updated_timestamp = 2;            // Presence update timestamp
+}
+
+// Core data structures
+message FriendProto {
+  string player_id = 1;                   // Friend's player UUID
+  string bunker_tag = 2;                  // Friend's username
+  string display_name = 3;                // Friend's display name
+  string avatar_url = 4;                  // Friend's avatar URL
+  uint32 player_level = 5;                // Friend's player level
+  PresenceStatusProto presence_status = 6; // Online status
+  PlayerStatusProto current_status = 7;   // Current activity status
+  int64 friendship_started = 8;           // When friendship began
+  bool is_mutual_friend = 9;              // Whether friendship is mutual
+  int64 last_seen_timestamp = 10;         // When friend was last seen online
+}
+
+message FriendshipProto {
+  string friendship_id = 1;               // Unique friendship identifier
+  string player_one_id = 2;               // First player in friendship
+  string player_two_id = 3;               // Second player in friendship
+  int64 friendship_started = 4;           // When friendship began
+  FriendshipStatusProto status = 5;       // Friendship status
+}
+
+message FriendRequestProto {
+  string friend_request_id = 1;           // Unique friend request identifier
+  string requester_player_id = 2;         // Player who sent request
+  string target_player_id = 3;            // Player who received request
+  string requester_bunker_tag = 4;        // Requester's username
+  string requester_display_name = 5;      // Requester's display name
+  string requester_avatar_url = 6;        // Requester's avatar URL
+  string message = 7;                     // Optional message with request
+  FriendRequestStatusProto status = 8;    // Request status
+  int64 sent_timestamp = 9;               // When request was sent
+  optional int64 responded_timestamp = 10; // When request was responded to
+}
+
+message PlayerSearchResultProto {
+  string player_id = 1;                   // Player UUID
+  string bunker_tag = 2;                  // Player's username
+  string display_name = 3;                // Player's display name
+  string avatar_url = 4;                  // Player's avatar URL
+  uint32 player_level = 5;                // Player's level
+  bool is_friend = 6;                     // Whether already friends with searcher
+  bool is_blocked = 7;                    // Whether player is blocked by searcher
+  FriendRequestStatusProto friend_request_status = 8; // Current friend request status
+  int64 last_active_timestamp = 9;        // Last time player was active
+}
+
+message PlayerPublicProfileProto {
+  string player_id = 1;                   // Player UUID
+  string bunker_tag = 2;                  // Player's username
+  string display_name = 3;                // Player's display name
+  string avatar_url = 4;                  // Player's avatar URL
+  optional string bio = 5;                // Player's bio (if public)
+  uint32 player_level = 6;                // Player's level
+  uint64 total_xp = 7;                    // Player's total XP
+  int64 account_created = 8;              // Account creation timestamp
+  int64 last_active = 9;                  // Last activity timestamp
+  
+  // Privacy-controlled information
+  optional bunkerverse.core.v1.ActiveBunkerguardDataProto active_bunkerguard = 10; // If inventory public
+  repeated bunkerverse.core.v1.NftDetailsProto showcase_nfts = 11; // Player's showcase NFTs
+  PlayerStatsProto public_stats = 12;     // Public statistics
+  repeated string achievements = 13;       // Public achievements
+  bool is_friend = 14;                    // Whether viewer is friends with this player
+  bool is_blocked = 15;                   // Whether this player is blocked
+  
+  // Privacy settings
+  bool profile_is_public = 16;            // Whether profile is public
+  bool inventory_is_public = 17;          // Whether inventory is visible
+  bool stats_are_public = 18;             // Whether stats are visible
+}
+
+message BlockedPlayerProto {
+  string blocked_player_id = 1;           // Blocked player's UUID
+  string bunker_tag = 2;                  // Blocked player's username
+  string display_name = 3;                // Blocked player's display name
+  string block_reason = 4;                // Reason for blocking
+  int64 blocked_timestamp = 5;            // When player was blocked
+}
+
+message DirectMessageProto {
+  string message_id = 1;                  // Unique message identifier
+  string sender_player_id = 2;            // Message sender UUID
+  string recipient_player_id = 3;         // Message recipient UUID
+  string message_content = 4;             // Message text
+  MessageTypeProto message_type = 5;      // Message type
+  optional string attachment_url = 6;     // Attachment URL (if any)
+  int64 sent_timestamp = 7;               // When message was sent
+  bool is_read = 8;                       // Whether recipient has read message
+  optional int64 read_timestamp = 9;      // When message was read
+  bool is_deleted_by_sender = 10;         // Whether sender deleted message
+  bool is_deleted_by_recipient = 11;      // Whether recipient deleted message
+  MessageStatusProto status = 12;         // Message delivery status
+}
+
+message GroupMessageProto {
+  string message_id = 1;                  // Unique message identifier
+  string group_id = 2;                    // Group identifier
+  string sender_player_id = 3;            // Message sender UUID
+  string sender_bunker_tag = 4;           // Sender's username
+  string message_content = 5;             // Message text
+  MessageTypeProto message_type = 6;      // Message type
+  optional string attachment_url = 7;     // Attachment URL (if any)
+  optional string reply_to_message_id = 8; // ID of message being replied to
+  int64 sent_timestamp = 9;               // When message was sent
+  repeated string read_by_player_ids = 10; // Players who have read this message
+  MessageStatusProto status = 11;         // Message status
+}
+
+message ConversationInfoProto {
+  string conversation_id = 1;             // Unique conversation identifier
+  string other_player_id = 2;             // Other participant's UUID
+  string other_player_bunker_tag = 3;     // Other participant's username
+  string other_player_display_name = 4;   // Other participant's display name
+  string other_player_avatar_url = 5;     // Other participant's avatar URL
+  uint32 unread_message_count = 6;        // Unread messages count
+  optional DirectMessageProto last_message = 7; // Most recent message
+  int64 last_activity_timestamp = 8;      // Last message timestamp
+  bool is_archived = 9;                   // Whether conversation is archived
+}
+
+message ChatGroupProto {
+  string group_id = 1;                    // Unique group identifier
+  string group_name = 2;                  // Group name
+  string group_description = 3;           // Group description
+  string creator_player_id = 4;           // Group creator UUID
+  ChatGroupTypeProto group_type = 5;      // Group type
+  bool is_private = 6;                    // Whether group is private
+  repeated GroupMemberProto members = 7;  // Group members
+  uint32 member_count = 8;                // Total member count
+  uint32 max_members = 9;                 // Maximum allowed members
+  int64 created_timestamp = 10;           // Group creation timestamp
+  optional GroupMessageProto last_message = 11; // Most recent message
+  uint32 unread_message_count = 12;       // Unread messages for requesting player
+  string group_avatar_url = 13;           // Group avatar URL
+  optional string join_code = 14;         // Join code for private groups
+}
+
+message GroupMemberProto {
+  string player_id = 1;                   // Member's player UUID
+  string bunker_tag = 2;                  // Member's username
+  string display_name = 3;                // Member's display name
+  string avatar_url = 4;                  // Member's avatar URL
+  GroupRoleProto role = 5;                // Member's role in group
+  int64 joined_timestamp = 6;             // When member joined group
+  bool is_online = 7;                     // Whether member is currently online
+}
+
+message ActivityPostProto {
+  string post_id = 1;                     // Unique post identifier
+  string author_player_id = 2;            // Post author UUID
+  string author_bunker_tag = 3;           // Author's username
+  string author_display_name = 4;         // Author's display name
+  string author_avatar_url = 5;           // Author's avatar URL
+  string post_content = 6;                // Post text content
+  PostTypeProto post_type = 7;            // Type of post
+  repeated string attachment_urls = 8;     // Attached media URLs
+  PostVisibilityProto visibility = 9;     // Post visibility
+  uint32 like_count = 10;                 // Number of likes
+  uint32 comment_count = 11;              // Number of comments
+  bool is_liked_by_viewer = 12;           // Whether viewing player liked this post
+  int64 created_timestamp = 13;           // Post creation timestamp
+  repeated PlayerMentionProto player_mentions = 14; // Tagged players
+}
+
+message PostCommentProto {
+  string comment_id = 1;                  // Unique comment identifier
+  string post_id = 2;                     // Post being commented on
+  string commenter_player_id = 3;         // Commenter's UUID
+  string commenter_bunker_tag = 4;        // Commenter's username
+  string commenter_display_name = 5;      // Commenter's display name
+  string commenter_avatar_url = 6;        // Commenter's avatar URL
+  string comment_content = 7;             // Comment text
+  optional string reply_to_comment_id = 8; // ID of comment being replied to
+  uint32 like_count = 9;                  // Number of likes on comment
+  bool is_liked_by_viewer = 10;           // Whether viewing player liked comment
+  int64 created_timestamp = 11;           // Comment creation timestamp
+  repeated PostCommentProto replies = 12; // Replies to this comment
+}
+
+message PlayerStatusProto {
+  string status_message = 1;              // Custom status message
+  PlayerActivityStatusProto activity_status = 2; // Current activity
+  bool show_activity = 3;                 // Whether to show activity to friends
+  int64 last_updated = 4;                 // Last status update timestamp
+}
+
+message OnlineFriendProto {
+  string player_id = 1;                   // Friend's player UUID
+  string bunker_tag = 2;                  // Friend's username
+  string display_name = 3;                // Friend's display name
+  string avatar_url = 4;                  // Friend's avatar URL
+  PresenceStatusProto presence_status = 5; // Current presence status
+  PlayerStatusProto current_status = 6;   // Current activity status
+  int64 came_online_timestamp = 7;        // When friend came online
+}
+
+message PlayerMentionProto {
+  string mentioned_player_id = 1;         // Mentioned player's UUID
+  string mentioned_bunker_tag = 2;        // Mentioned player's username
+  uint32 mention_start_index = 3;         // Start position in text
+  uint32 mention_length = 4;              // Length of mention in text
+}
+
+// Filter structures
+message FriendFiltersProto {
+  repeated PresenceStatusProto presence_statuses = 1; // Filter by online status
+  bool only_mutual_friends = 2;          // Only show mutual friends
+  string name_filter = 3;                // Filter by name/tag
+}
+
+message PlayerSearchFiltersProto {
+  uint32 min_level = 1;                  // Minimum player level
+  uint32 max_level = 2;                  // Maximum player level
+  bool only_online = 3;                  // Only show online players
+  repeated string exclude_player_ids = 4; // Players to exclude from results
+}
+
+message ChatGroupFiltersProto {
+  repeated ChatGroupTypeProto group_types = 1; // Filter by group type
+  bool only_admin_groups = 2;            // Only groups where player is admin
+  bool only_private_groups = 3;          // Only private groups
+  string name_filter = 4;                // Filter by group name
+}
+
+message ActivityFeedFiltersProto {
+  repeated PostTypeProto post_types = 1; // Filter by post type
+  bool only_friends = 2;                 // Only posts from friends
+  int64 since_timestamp = 3;             // Only posts after this time
+}
+
+// Statistics structures
+message PlayerStatsProto {
+  uint32 friends_count = 1;               // Total friends
+  uint32 posts_count = 2;                 // Total posts created
+  uint32 likes_received_count = 3;        // Total likes received
+  uint32 comments_made_count = 4;         // Total comments made
+  int64 most_active_time_hour = 5;        // Most active hour of day (0-23)
+  repeated string favorite_activities = 6; // Most common activities
+}
+
+// Enums
+enum FriendRequestTypeProto {
+  FRIEND_REQUEST_TYPE_UNSPECIFIED = 0;
+  SENT = 1;                               // Requests sent by player
+  RECEIVED = 2;                           // Requests received by player
+  ALL = 3;                                // All requests
+}
+
+enum FriendRequestStatusProto {
+  FRIEND_REQUEST_STATUS_UNSPECIFIED = 0;
+  PENDING = 1;                            // Request pending response
+  ACCEPTED = 2;                           // Request accepted
+  REJECTED = 3;                           // Request rejected
+  CANCELLED = 4;                          // Request cancelled by sender
+  EXPIRED = 5;                            // Request expired
+}
+
+enum FriendshipStatusProto {
+  FRIENDSHIP_STATUS_UNSPECIFIED = 0;
+  ACTIVE = 1;                             // Active friendship
+  ENDED = 2;                              // Friendship ended
+  BLOCKED = 3;                            // One player blocked the other
+}
+
+enum MessageTypeProto {
+  MESSAGE_TYPE_UNSPECIFIED = 0;
+  TEXT = 1;                               // Plain text message
+  IMAGE = 2;                              // Image attachment
+  EMOJI = 3;                              // Emoji/reaction message
+  SYSTEM = 4;                             // System-generated message
+  ACHIEVEMENT = 5;                        // Achievement sharing
+  NFT_SHARE = 6;                          // NFT sharing message
+}
+
+enum MessageStatusProto {
+  MESSAGE_STATUS_UNSPECIFIED = 0;
+  SENT = 1;                               // Message sent successfully
+  DELIVERED = 2;                          // Message delivered to recipient
+  READ = 3;                               // Message read by recipient
+  FAILED = 4;                             // Message failed to send
+}
+
+enum ChatGroupTypeProto {
+  CHAT_GROUP_TYPE_UNSPECIFIED = 0;
+  GENERAL = 1;                            // General purpose group
+  GUILD = 2;                              // Guild/clan group
+  EVENT = 3;                              // Event-specific group
+  TRADING = 4;                            // Trading/marketplace group
+  HELP = 5;                               // Help/support group
+}
+
+enum GroupRoleProto {
+  GROUP_ROLE_UNSPECIFIED = 0;
+  MEMBER = 1;                             // Regular group member
+  MODERATOR = 2;                          // Group moderator
+  ADMIN = 3;                              // Group administrator
+  OWNER = 4;                              // Group owner
+}
+
+enum PostTypeProto {
+  POST_TYPE_UNSPECIFIED = 0;
+  GENERAL = 1;                            // General post
+  ACHIEVEMENT = 2;                        // Achievement sharing
+  NFT_SHOWCASE = 3;                       // NFT showcase
+  MISSION_COMPLETION = 4;                 // Mission completion sharing
+  LEVEL_UP = 5;                           // Level up announcement
+  TRADE_OFFER = 6;                        // Trading offer
+}
+
+enum PostVisibilityProto {
+  POST_VISIBILITY_UNSPECIFIED = 0;
+  PUBLIC = 1;                             // Visible to all players
+  FRIENDS_ONLY = 2;                       // Visible to friends only
+  PRIVATE = 3;                            // Visible to self only
+}
+
+enum PresenceStatusProto {
+  PRESENCE_STATUS_UNSPECIFIED = 0;
+  ONLINE = 1;                             // Currently online
+  AWAY = 2;                               // Away from keyboard
+  BUSY = 3;                               // Busy/do not disturb
+  INVISIBLE = 4;                          // Appear offline to others
+  OFFLINE = 5;                            // Actually offline
+}
+
+enum PlayerActivityStatusProto {
+  PLAYER_ACTIVITY_STATUS_UNSPECIFIED = 0;
+  IN_MENU = 1;                            // In main menu
+  IN_MISSION = 2;                         // Playing mission
+  IN_MARKETPLACE = 3;                     // Browsing marketplace
+  CUSTOMIZING_ROBOT = 4;                  // Customizing Bunkerguard
+  CHATTING = 5;                           // In chat/social features
+  TRADING = 6;                            // Trading with other players
+}
+
+// Health check message
+message HealthRequest {
+  string trace_id = 1;
+}
+
+message HealthResponse {
+  string status = 1;
+  string version = 2;
+  int64 timestamp = 3;
+  map<string, string> details = 4;
+}

@@ -1,6 +1,41 @@
 [package]
 name = "common-rust"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+description = "BUNKERVERSE Platform - Common Rust Types & Utilities"
+license = "MIT"
 
 [dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# Error handling
+thiserror = "1.0"
+anyhow = "1.0"
+
+# UUID generation and validation
+uuid = { version = "1.6", features = ["v4", "serde"] }
+
+# Regex for validation
+regex = "1.10"
+once_cell = "1.19"
+
+# Time handling
+chrono = { version = "0.4", features = ["serde"] }
+
+# Protocol Buffers (generated code support)
+prost = "0.12"
+prost-types = "0.12"
+
+# Optional: protobuf build support
+[build-dependencies]
+prost-build = { version = "0.12", optional = true }
+
+[features]
+default = []
+protobuf-build = ["prost-build"]
+
+[lib]
+name = "common_rust"
+path = "src/lib.rs"

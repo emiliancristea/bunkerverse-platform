@@ -1,0 +1,146 @@
+syntax = "proto3";
+
+package bunkerverse.core.v1;
+
+import "bunkerverse/core/v1/enums.proto";
+
+// Core data types with validation rules as comments
+
+message CoreStatsProto {
+  // Combat stats (4 sub-stats)
+  uint32 damage = 1;           // Range: 0-1000
+  uint32 accuracy = 2;         // Range: 0-1000  
+  uint32 critical_chance = 3;  // Range: 0-1000
+  uint32 armor_piercing = 4;   // Range: 0-1000
+  
+  // Mobility stats (4 sub-stats)
+  uint32 speed = 5;            // Range: 0-1000
+  uint32 agility = 6;          // Range: 0-1000
+  uint32 stealth = 7;          // Range: 0-1000
+  uint32 evasion = 8;          // Range: 0-1000
+  
+  // Survivability stats (2 sub-stats)
+  uint32 health = 9;           // Range: 0-1000
+  uint32 shield = 10;          // Range: 0-1000
+  
+  // Sensors stats (2 sub-stats)
+  uint32 detection = 11;       // Range: 0-1000
+  uint32 range = 12;           // Range: 0-1000
+  
+  // Category averages (calculated from sub-stats)
+  uint32 combat_average = 13;      // Average of damage, accuracy, critical_chance, armor_piercing
+  uint32 mobility_average = 14;    // Average of speed, agility, stealth, evasion
+  uint32 survivability_average = 15; // Average of health, shield
+  uint32 sensors_average = 16;     // Average of detection, range
+}
+
+message NftIdentifierProto {
+  string nft_id = 1;          // UUID v4 format: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+  uint64 token_id = 2;        // On-chain token ID for L3 contract
+  string contract_address = 3; // Ethereum address: ^0x[a-fA-F0-9]{40}$
+}
+
+message NftDetailsProto {
+  NftIdentifierProto identifier = 1;
+  ItemRarityProto item_rarity = 2;
+  ItemTypeProto item_type = 3;
+  CoreStatsProto base_stat_boosts = 4;
+  repeated BunkerClassProto class_affinities = 5;
+  ClassAffiliationProto trait_affiliation = 6;
+  string construct_origin = 7;        // Max length: 256 chars
+  string metadata_pointer_uri = 8;    // IPFS CID, format: Qm[1-9A-HJ-NP-Za-km-z]{44}
+  uint32 schema_version = 9;          // Starting at 1
+  int64 created_timestamp = 10;       // Unix timestamp
+}
+
+message NftMutableStateProto {
+  string current_owner_id = 1;        // Player UUID
+  ItemConditionProto current_condition = 2;
+  bool is_soulbound = 3;
+  MarketStatusProto market_status = 4;
+  uint64 market_price_ntc = 5;        // Price in NTC wei if listed
+  int64 last_updated_timestamp = 6;   // Unix timestamp
+}
+
+message BalancesProto {
+  uint64 xp = 1;              // Validated: <= 1000000000 (MAX_XP)
+  uint64 ntc_balance = 2;     // In wei, validated: <= MAX_SUPPLY
+  uint64 credits_balance = 3; // Fiat credits for purchases, active in MVE
+}
+
+message CryptoAddressesProto {
+  string l3_wallet_address = 1;       // Ethereum address for L3 chain
+  string l2_wallet_address = 2;       // Arbitrum One address
+  string l1_wallet_address = 3;       // Ethereum mainnet address
+  int64 addresses_updated_timestamp = 4; // Unix timestamp
+}
+
+message NtcStakingDetailsProto {
+  uint64 total_staked_ntc = 1;        // Amount staked in wei
+  uint64 rewards_earned_ntc = 2;      // Accumulated rewards in wei
+  int64 stake_start_timestamp = 3;    // Unix timestamp
+  int64 last_reward_claim_timestamp = 4; // Unix timestamp
+  uint32 staking_tier = 5;           // 1-10 based on stake amount
+  bool auto_compound = 6;            // Auto-reinvest rewards
+}
+
+message ActiveBunkerguardDataProto {
+  optional string robot_id = 1;              // Linked BunkerguardRobot NFT ID (UUID)
+  uint32 level = 2;                         // Range: 1-100
+  optional BunkerClassProto current_class = 3;
+  ClassAffiliationProto current_affiliation = 4;
+  CoreStatsProto final_stats = 5;           // Stats after equipment bonuses
+  map<string, string> equipped_items = 6;   // slot_name -> nft_id mapping
+  uint64 total_xp = 7;                      // Total XP earned by this robot
+  int64 last_active_timestamp = 8;          // Unix timestamp
+}
+
+message AgentChainStateProto {
+  // Core fields - always active
+  string player_id = 1;                     // UUID v4, validated: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
+  BalancesProto balances = 2;
+  ActiveBunkerguardDataProto active_bunkerguard = 3;
+  map<string, repeated string> owned_nft_ids_by_type = 4; // key: ItemTypeProto name
+  
+  // On-chain fields - active in MVE on L3
+  NtcStakingDetailsProto ntc_staking = 5;   // Active on L3 chain
+  CryptoAddressesProto crypto_addresses = 6; // Player's L3 wallet addresses
+  
+  // Metadata
+  uint32 schema_version = 7;                // Starting at 1, for migration handling
+  int64 last_updated_timestamp = 8;         // Unix timestamp, validated: > 1609459200 (2021+)
+}
+
+message ErrorResponseProto {
+  ErrorCodeProto code = 1;
+  string message = 2;                       // User-safe message, max 256 chars
+  string trace_id = 3;                      // For debugging, links to logs
+  map<string, string> details = 4;         // Additional context for debugging
+}
+
+message TransactionRequestProto {
+  string transaction_data = 1;              // Serialized transaction payload
+  string signature = 2;                     // 65-byte signature (hex encoded)
+  string from_address = 3;                  // Sender's L3 wallet address
+  uint64 gas_limit = 4;                     // Gas limit for transaction
+  uint64 gas_price = 5;                     // Gas price in wei
+  uint64 nonce = 6;                         // Transaction nonce
+  string trace_id = 7;                      // For request tracing
+}
+
+message TransactionReceiptProto {
+  string transaction_hash = 1;              // L3 transaction hash
+  TransactionStatusProto status = 2;
+  uint64 block_number = 3;                  // Block where transaction was mined
+  uint64 gas_used = 4;                      // Actual gas used
+  string error_message = 5;                 // Error details if failed
+  repeated string emitted_events = 6;       // Event logs from transaction
+  int64 confirmation_timestamp = 7;         // Unix timestamp
+}
+
+message PaginationProto {
+  uint32 page = 1;                          // 1-based page number
+  uint32 page_size = 2;                     // Items per page, max 100
+  uint64 total_items = 3;                   // Total items available
+  uint32 total_pages = 4;                   // Total pages available
+}

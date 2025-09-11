@@ -1,0 +1,15 @@
+version: v2
+directories:
+  - schemas/proto
+lint:
+  use:
+    - BASIC
+    - COMMENTS
+    - FILE_LAYOUT
+  ignore:
+    - schemas/proto/third_party
+breaking:
+  use:
+    - FILE
+  ignore:
+    - schemas/proto/third_party

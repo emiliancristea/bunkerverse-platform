@@ -49,7 +49,11 @@
       "Bash(QMAKE=\"/d/DOCUMENTS/Qt/6.9.2/msvc2022_64/bin/qmake.exe\" QT_INCLUDE_PATH=\"/d/DOCUMENTS/Qt/6.9.2/msvc2022_64/include\" QT_LIBRARY_PATH=\"/d/DOCUMENTS/Qt/6.9.2/msvc2022_64/lib\" QTDIR=\"/d/DOCUMENTS/Qt/6.9.2/msvc2022_64\" cargo check)",
       "Bash(git show:*)",
       "Bash(node:*)",
-      "Bash(git cherry-pick:*)"
+      "Bash(git cherry-pick:*)",
+      "Bash(do if [ ! -f \"$dirSECURITY_ASSESSMENT.md\" ])",
+      "Bash(git --version)",
+      "Bash(buf lint:*)",
+      "Bash(buf mod:*)"
     ],
     "deny": [],
     "ask": []

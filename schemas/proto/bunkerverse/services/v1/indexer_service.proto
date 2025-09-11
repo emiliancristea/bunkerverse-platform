@@ -1,0 +1,307 @@
+syntax = "proto3";
+
+package bunkerverse.services.v1;
+
+import "bunkerverse/core/v1/types.proto";
+import "bunkerverse/core/v1/enums.proto";
+import "bunkerverse/core/v1/events.proto";
+
+// Indexer Service - L3 Chain Event Processing and Querying
+service IndexerService {
+  // Event querying
+  rpc GetEvents(GetEventsRequest) returns (GetEventsResponse);
+  rpc GetEventsByPlayer(GetEventsByPlayerRequest) returns (GetEventsByPlayerResponse);
+  rpc GetEventsByType(GetEventsByTypeRequest) returns (GetEventsByTypeResponse);
+  rpc GetEventsByBlock(GetEventsByBlockRequest) returns (GetEventsByBlockResponse);
+  
+  // Chain state queries
+  rpc GetPlayerChainState(GetPlayerChainStateRequest) returns (GetPlayerChainStateResponse);
+  rpc GetNftOwnership(GetNftOwnershipRequest) returns (GetNftOwnershipResponse);
+  rpc GetContractState(GetContractStateRequest) returns (GetContractStateResponse);
+  
+  // Indexing status and control
+  rpc GetIndexingStatus(GetIndexingStatusRequest) returns (GetIndexingStatusResponse);
+  rpc ReindexFromBlock(ReindexFromBlockRequest) returns (ReindexFromBlockResponse);
+  
+  // Health check
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+// Event querying messages
+message GetEventsRequest {
+  bunkerverse.core.v1.PaginationProto pagination = 1;
+  EventFiltersProto filters = 2;          // Optional event filters
+  EventSortProto sort = 3;                // Sort options
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message GetEventsResponse {
+  oneof result {
+    GetEventsSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetEventsSuccess {
+  repeated bunkerverse.core.v1.CanonicalEventProto events = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  IndexingStatsProto indexing_stats = 3; // Current indexing status
+}
+
+message GetEventsByPlayerRequest {
+  string player_id = 1;                   // Player UUID to filter by
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  EventFiltersProto filters = 3;          // Additional filters
+  EventSortProto sort = 4;                // Sort options
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message GetEventsByPlayerResponse {
+  oneof result {
+    GetEventsByPlayerSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetEventsByPlayerSuccess {
+  repeated bunkerverse.core.v1.CanonicalEventProto events = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  PlayerEventStatsProto player_stats = 3; // Player-specific event statistics
+}
+
+message GetEventsByTypeRequest {
+  string event_type = 1;                  // Event type to filter by
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  EventFiltersProto filters = 3;          // Additional filters
+  EventSortProto sort = 4;                // Sort options
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message GetEventsByTypeResponse {
+  oneof result {
+    GetEventsByTypeSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetEventsByTypeSuccess {
+  repeated bunkerverse.core.v1.CanonicalEventProto events = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  EventTypeStatsProto type_stats = 3;     // Statistics for this event type
+}
+
+message GetEventsByBlockRequest {
+  uint64 start_block = 1;                 // Starting block number (inclusive)
+  uint64 end_block = 2;                   // Ending block number (inclusive)
+  EventFiltersProto filters = 3;          // Optional event filters
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message GetEventsByBlockResponse {
+  oneof result {
+    GetEventsByBlockSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetEventsByBlockSuccess {
+  repeated bunkerverse.core.v1.CanonicalEventProto events = 1;
+  BlockRangeStatsProto block_stats = 2;   // Statistics for the block range
+}
+
+// Chain state query messages
+message GetPlayerChainStateRequest {
+  string player_id = 1;                   // Player UUID
+  bool include_nft_details = 2;           // Include full NFT metadata
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message GetPlayerChainStateResponse {
+  oneof result {
+    bunkerverse.core.v1.AgentChainStateProto chain_state = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetNftOwnershipRequest {
+  string nft_id = 1;                      // NFT identifier
+  bool include_history = 2;               // Include ownership history
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message GetNftOwnershipResponse {
+  oneof result {
+    GetNftOwnershipSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetNftOwnershipSuccess {
+  bunkerverse.core.v1.NftDetailsProto nft_details = 1;
+  bunkerverse.core.v1.NftMutableStateProto current_state = 2;
+  repeated NftOwnershipHistoryProto ownership_history = 3; // If requested
+}
+
+message GetContractStateRequest {
+  string contract_address = 1;            // L3 contract address
+  string state_key = 2;                   // Specific state key to query
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message GetContractStateResponse {
+  oneof result {
+    GetContractStateSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetContractStateSuccess {
+  string contract_address = 1;            // Contract address queried
+  string state_key = 2;                   // State key queried
+  bytes state_value = 3;                  // Raw state value
+  string state_value_json = 4;            // JSON representation (if applicable)
+  uint64 last_updated_block = 5;          // Block when state was last updated
+  int64 last_updated_timestamp = 6;       // Timestamp of last update
+}
+
+// Indexing status and control messages
+message GetIndexingStatusRequest {
+  string trace_id = 1;                    // Request tracing ID
+}
+
+message GetIndexingStatusResponse {
+  oneof result {
+    IndexingStatusProto status = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message IndexingStatusProto {
+  uint64 current_block = 1;               // Current indexed block
+  uint64 latest_block = 2;                // Latest available block on L3
+  uint64 blocks_behind = 3;               // Number of blocks behind
+  bool is_syncing = 4;                    // Whether currently syncing
+  float sync_progress_percent = 5;        // Sync progress percentage
+  int64 last_sync_timestamp = 6;          // Last successful sync timestamp
+  uint64 events_processed_total = 7;      // Total events processed
+  uint64 events_per_second = 8;           // Current processing rate
+  repeated string unhealthy_contracts = 9; // Contracts with indexing issues
+  IndexingStatsProto stats = 10;          // Detailed indexing statistics
+}
+
+message ReindexFromBlockRequest {
+  uint64 start_block = 1;                 // Block to start reindexing from
+  bool preserve_existing = 2;             // Whether to preserve existing data
+  repeated string contract_addresses = 3; // Specific contracts to reindex (empty = all)
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message ReindexFromBlockResponse {
+  oneof result {
+    ReindexFromBlockSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message ReindexFromBlockSuccess {
+  string reindex_job_id = 1;              // Job identifier for tracking
+  uint64 start_block = 2;                 // Starting block for reindexing
+  uint64 estimated_blocks_to_process = 3; // Estimated number of blocks
+  int64 estimated_completion_time = 4;    // Estimated completion timestamp
+}
+
+// Filter and sort messages
+message EventFiltersProto {
+  repeated string event_types = 1;        // Filter by event types
+  repeated string contract_addresses = 2; // Filter by contract addresses
+  repeated string player_ids = 3;         // Filter by player IDs
+  uint64 start_block = 4;                 // Starting block number (inclusive)
+  uint64 end_block = 5;                   // Ending block number (inclusive)
+  int64 start_timestamp = 6;              // Starting timestamp (inclusive)
+  int64 end_timestamp = 7;                // Ending timestamp (inclusive)
+  repeated string transaction_hashes = 8; // Filter by specific transactions
+}
+
+message EventSortProto {
+  enum SortField {
+    SORT_FIELD_UNSPECIFIED = 0;
+    BLOCK_NUMBER_ASC = 1;
+    BLOCK_NUMBER_DESC = 2;
+    TIMESTAMP_ASC = 3;
+    TIMESTAMP_DESC = 4;
+    LOG_INDEX_ASC = 5;
+    LOG_INDEX_DESC = 6;
+  }
+  SortField sort_field = 1;
+}
+
+// Supporting data structures
+message NftOwnershipHistoryProto {
+  string previous_owner_id = 1;           // Previous owner player ID
+  string new_owner_id = 2;                // New owner player ID
+  string transfer_type = 3;               // "mint", "purchase", "transfer", "burn"
+  uint64 transfer_price_wei = 4;          // Transfer price (if applicable)
+  string transaction_hash = 5;            // L3 transaction hash
+  uint64 block_number = 6;                // Block number of transfer
+  int64 transfer_timestamp = 7;           // Transfer timestamp
+}
+
+message PlayerEventStatsProto {
+  string player_id = 1;                   // Player UUID
+  uint64 total_events = 2;                // Total events for this player
+  uint64 nft_events = 3;                  // NFT-related events
+  uint64 transaction_events = 4;          // Transaction events
+  uint64 mission_events = 5;              // Mission completion events
+  uint64 staking_events = 6;              // NTC staking events
+  int64 first_event_timestamp = 7;        // Timestamp of first event
+  int64 last_event_timestamp = 8;         // Timestamp of last event
+  map<string, uint64> event_type_counts = 9; // Count by event type
+}
+
+message EventTypeStatsProto {
+  string event_type = 1;                  // Event type
+  uint64 total_count = 2;                 // Total events of this type
+  uint64 count_24h = 3;                   // Events in last 24 hours
+  uint64 count_7d = 4;                    // Events in last 7 days
+  uint64 count_30d = 5;                   // Events in last 30 days
+  float average_per_day = 6;              // Average events per day
+  int64 first_occurrence = 7;             // First occurrence timestamp
+  int64 last_occurrence = 8;              // Last occurrence timestamp
+  repeated string top_players = 9;        // Top players for this event type
+}
+
+message BlockRangeStatsProto {
+  uint64 start_block = 1;                 // Starting block
+  uint64 end_block = 2;                   // Ending block
+  uint64 total_events = 3;                // Total events in range
+  uint64 total_transactions = 4;          // Total transactions in range
+  map<string, uint64> contract_event_counts = 5; // Events by contract
+  map<string, uint64> event_type_counts = 6; // Events by type
+  int64 range_start_timestamp = 7;        // Timestamp of first block
+  int64 range_end_timestamp = 8;          // Timestamp of last block
+}
+
+message IndexingStatsProto {
+  uint64 total_events_indexed = 1;        // Total events indexed
+  uint64 total_blocks_indexed = 2;        // Total blocks indexed
+  uint64 events_per_second_current = 3;   // Current indexing rate
+  uint64 events_per_second_average = 4;   // Average indexing rate
+  map<string, uint64> contract_event_counts = 5; // Events indexed by contract
+  map<string, uint64> event_type_counts = 6; // Events indexed by type
+  int64 indexing_start_time = 7;          // When indexing started
+  int64 last_successful_sync = 8;         // Last successful sync timestamp
+  repeated string recent_errors = 9;       // Recent indexing errors
+  uint64 database_size_bytes = 10;        // Current database size
+}
+
+// Health check message
+message HealthRequest {
+  string trace_id = 1;
+}
+
+message HealthResponse {
+  string status = 1;
+  string version = 2;
+  int64 timestamp = 3;
+  map<string, string> details = 4;
+}

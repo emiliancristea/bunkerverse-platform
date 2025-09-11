@@ -1,0 +1,538 @@
+syntax = "proto3";
+
+package bunkerverse.services.v1;
+
+import "bunkerverse/core/v1/types.proto";
+import "bunkerverse/core/v1/enums.proto";
+
+// Mission Service - Progress tracking and mission management
+service MissionService {
+  // Mission discovery and information
+  rpc GetAvailableMissions(GetAvailableMissionsRequest) returns (GetAvailableMissionsResponse);
+  rpc GetMissionDetails(GetMissionDetailsRequest) returns (GetMissionDetailsResponse);
+  rpc GetMissionCategories(GetMissionCategoriesRequest) returns (GetMissionCategoriesResponse);
+  
+  // Mission progress and completion
+  rpc GetMissionProgress(GetMissionProgressRequest) returns (GetMissionProgressResponse);
+  rpc UpdateMissionProgress(UpdateMissionProgressRequest) returns (UpdateMissionProgressResponse);
+  rpc CompleteMission(CompleteMissionRequest) returns (CompleteMissionResponse);
+  rpc ClaimMissionRewards(ClaimMissionRewardsRequest) returns (ClaimMissionRewardsResponse);
+  
+  // Mission history and statistics
+  rpc GetMissionHistory(GetMissionHistoryRequest) returns (GetMissionHistoryResponse);
+  rpc GetPlayerMissionStats(GetPlayerMissionStatsRequest) returns (GetPlayerMissionStatsResponse);
+  
+  // Daily/Weekly mission management
+  rpc GetDailyMissions(GetDailyMissionsRequest) returns (GetDailyMissionsResponse);
+  rpc GetWeeklyMissions(GetWeeklyMissionsRequest) returns (GetWeeklyMissionsResponse);
+  rpc RefreshDailyMissions(RefreshDailyMissionsRequest) returns (RefreshDailyMissionsResponse);
+  
+  // Health check
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+// Mission discovery messages
+message GetAvailableMissionsRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  MissionFiltersProto filters = 3;        // Optional mission filters
+  MissionSortProto sort = 4;              // Sort preferences
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message GetAvailableMissionsResponse {
+  oneof result {
+    GetAvailableMissionsSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetAvailableMissionsSuccess {
+  repeated MissionProto missions = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  MissionCatalogStatsProto catalog_stats = 3;
+}
+
+message GetMissionDetailsRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string mission_id = 2;                  // Mission identifier
+  bool include_rewards_preview = 3;       // Include detailed reward information
+  bool include_completion_history = 4;    // Include player's completion history
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message GetMissionDetailsResponse {
+  oneof result {
+    MissionDetailsProto mission = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetMissionCategoriesRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  bool include_locked_categories = 2;     // Include categories not yet unlocked
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message GetMissionCategoriesResponse {
+  oneof result {
+    GetMissionCategoriesSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetMissionCategoriesSuccess {
+  repeated MissionCategoryProto categories = 1;
+  uint32 unlocked_categories_count = 2;
+  uint32 total_categories_count = 3;
+}
+
+// Mission progress messages
+message GetMissionProgressRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string mission_id = 2;                  // Mission identifier
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message GetMissionProgressResponse {
+  oneof result {
+    MissionProgressProto progress = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message UpdateMissionProgressRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string mission_id = 2;                  // Mission identifier
+  uint32 progress_increment = 3;          // Progress to add
+  string progress_context = 4;            // Context for progress update
+  map<string, string> progress_data = 5;  // Additional progress data
+  string trace_id = 6;                    // Request tracing ID
+}
+
+message UpdateMissionProgressResponse {
+  oneof result {
+    UpdateMissionProgressSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message UpdateMissionProgressSuccess {
+  MissionProgressProto updated_progress = 1;
+  bool mission_completed = 2;             // Whether mission was just completed
+  repeated MissionProto unlocked_missions = 3; // New missions unlocked
+}
+
+message CompleteMissionRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string mission_id = 2;                  // Mission identifier
+  map<string, string> completion_data = 3; // Mission completion verification data
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message CompleteMissionResponse {
+  oneof result {
+    CompleteMissionSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message CompleteMissionSuccess {
+  string mission_id = 1;                  // Completed mission ID
+  MissionCompletionProto completion = 2;  // Completion details
+  string l3_transaction_hash = 3;         // L3 transaction hash for rewards
+  repeated MissionProto unlocked_missions = 4; // Missions unlocked by completion
+}
+
+message ClaimMissionRewardsRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string mission_id = 2;                  // Mission identifier
+  repeated string reward_ids = 3;         // Specific rewards to claim (if selective)
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message ClaimMissionRewardsResponse {
+  oneof result {
+    ClaimMissionRewardsSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message ClaimMissionRewardsSuccess {
+  repeated MissionRewardProto claimed_rewards = 1;
+  string l3_transaction_hash = 2;         // L3 transaction hash for reward distribution
+  bunkerverse.core.v1.BalancesProto updated_balances = 3; // Updated player balances
+}
+
+// Mission history messages
+message GetMissionHistoryRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  MissionHistoryFiltersProto filters = 3; // Optional filters
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message GetMissionHistoryResponse {
+  oneof result {
+    GetMissionHistorySuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetMissionHistorySuccess {
+  repeated MissionCompletionProto completions = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  MissionHistoryStatsProto history_stats = 3;
+}
+
+message GetPlayerMissionStatsRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string trace_id = 2;                    // Request tracing ID
+}
+
+message GetPlayerMissionStatsResponse {
+  oneof result {
+    PlayerMissionStatsProto stats = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+// Daily/Weekly mission messages
+message GetDailyMissionsRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string date = 2;                        // Date (YYYY-MM-DD format, optional = today)
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message GetDailyMissionsResponse {
+  oneof result {
+    GetDailyMissionsSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetDailyMissionsSuccess {
+  repeated MissionProto daily_missions = 1;
+  int64 refresh_timestamp = 2;            // When daily missions refresh
+  uint32 completed_count = 3;             // Completed daily missions today
+  uint32 total_count = 4;                 // Total daily missions available
+  DailyMissionBonusProto completion_bonus = 5; // Bonus for completing all
+}
+
+message GetWeeklyMissionsRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string week_start_date = 2;             // Week start date (YYYY-MM-DD, optional = this week)
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message GetWeeklyMissionsResponse {
+  oneof result {
+    GetWeeklyMissionsSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetWeeklyMissionsSuccess {
+  repeated MissionProto weekly_missions = 1;
+  int64 refresh_timestamp = 2;            // When weekly missions refresh
+  uint32 completed_count = 3;             // Completed weekly missions
+  uint32 total_count = 4;                 // Total weekly missions available
+  WeeklyMissionBonusProto completion_bonus = 5; // Bonus for completing all
+}
+
+message RefreshDailyMissionsRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  bool use_refresh_token = 2;             // Use premium refresh token
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message RefreshDailyMissionsResponse {
+  oneof result {
+    RefreshDailyMissionsSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message RefreshDailyMissionsSuccess {
+  repeated MissionProto new_daily_missions = 1;
+  uint32 refresh_tokens_remaining = 2;    // Remaining refresh tokens
+  int64 next_free_refresh_timestamp = 3;  // When free refresh is available
+}
+
+// Core data structures
+message MissionProto {
+  string mission_id = 1;                  // Unique mission identifier
+  string title = 2;                       // Mission title
+  string description = 3;                 // Mission description
+  string short_description = 4;           // Brief mission summary
+  MissionTypeProto mission_type = 5;      // Mission type
+  MissionCategoryProto category = 6;      // Mission category
+  uint32 difficulty_level = 7;           // Difficulty (1-10)
+  MissionStatusProto status = 8;          // Current status for player
+  
+  // Requirements and objectives
+  repeated MissionObjectiveProto objectives = 9; // Mission objectives
+  repeated MissionRequirementProto requirements = 10; // Prerequisites
+  
+  // Rewards
+  repeated MissionRewardProto rewards = 11; // Mission rewards
+  MissionRewardProto completion_bonus = 12; // Bonus for full completion
+  
+  // Timing and availability
+  optional int64 available_from = 13;     // Mission availability start
+  optional int64 available_until = 14;    // Mission availability end
+  optional uint32 time_limit_hours = 15;  // Time limit after starting
+  bool is_repeatable = 16;                // Whether mission can be repeated
+  optional uint32 repeat_cooldown_hours = 17; // Cooldown between repeats
+  
+  // Progress tracking
+  MissionProgressProto current_progress = 18; // Player's current progress
+  
+  // Metadata
+  string icon_url = 19;                   // Mission icon URL
+  repeated string tags = 20;              // Mission tags for filtering
+  uint32 completion_rate_percent = 21;    // Global completion rate
+  int64 created_timestamp = 22;           // Mission creation timestamp
+  uint32 schema_version = 23;             // Mission schema version
+}
+
+message MissionDetailsProto {
+  MissionProto mission = 1;               // Core mission data
+  string detailed_description = 2;        // Full mission description
+  repeated string strategy_hints = 3;     // Gameplay strategy hints
+  repeated MissionCompletionProto previous_completions = 4; // Player's completion history
+  repeated MissionProto prerequisite_missions = 5; // Required previous missions
+  repeated MissionProto unlocked_missions = 6; // Missions unlocked by this one
+  MissionAnalyticsProto analytics = 7;    // Mission analytics and statistics
+}
+
+message MissionObjectiveProto {
+  string objective_id = 1;                // Unique objective identifier
+  string title = 2;                       // Objective title
+  string description = 3;                 // Objective description
+  ObjectiveTypeProto objective_type = 4;  // Type of objective
+  uint32 target_value = 5;                // Target value to reach
+  uint32 current_value = 6;               // Player's current progress
+  bool is_completed = 7;                  // Whether objective is completed
+  bool is_optional = 8;                   // Whether objective is optional
+  map<string, string> objective_data = 9; // Additional objective parameters
+}
+
+message MissionRequirementProto {
+  RequirementTypeProto requirement_type = 1; // Type of requirement
+  string requirement_value = 2;           // Required value or ID
+  string description = 3;                 // Human-readable description
+  bool is_met = 4;                        // Whether player meets requirement
+}
+
+message MissionRewardProto {
+  string reward_id = 1;                   // Unique reward identifier
+  RewardTypeProto reward_type = 2;        // Type of reward
+  string reward_value = 3;                // Reward value or identifier
+  uint64 reward_amount = 4;               // Reward amount (for XP, NTC, etc.)
+  string description = 5;                 // Reward description
+  string icon_url = 6;                    // Reward icon URL
+  bool is_guaranteed = 7;                 // Whether reward is guaranteed
+  float drop_rate_percent = 8;            // Drop rate if not guaranteed
+  bool is_claimed = 9;                    // Whether player has claimed reward
+}
+
+message MissionProgressProto {
+  string mission_id = 1;                  // Mission identifier
+  string player_id = 2;                   // Player UUID
+  MissionStatusProto status = 3;          // Current mission status
+  repeated MissionObjectiveProto objectives = 4; // Objective progress
+  uint32 overall_progress_percent = 5;    // Overall completion percentage
+  int64 started_timestamp = 6;            // When player started mission
+  optional int64 completed_timestamp = 7; // When player completed mission
+  optional int64 expires_timestamp = 8;   // When mission expires for player
+  uint32 completion_count = 9;            // How many times completed (if repeatable)
+  int64 last_progress_timestamp = 10;     // Last progress update
+}
+
+message MissionCompletionProto {
+  string mission_id = 1;                  // Mission identifier
+  string player_id = 2;                   // Player UUID
+  int64 completed_timestamp = 3;          // Completion timestamp
+  uint32 completion_time_seconds = 4;     // Time taken to complete
+  repeated MissionRewardProto rewards_received = 5; // Rewards actually received
+  uint64 xp_earned = 6;                   // XP earned from completion
+  uint64 ntc_earned = 7;                  // NTC earned from completion
+  string l3_transaction_hash = 8;         // L3 transaction for rewards
+  map<string, string> completion_data = 9; // Additional completion metrics
+}
+
+message MissionCategoryProto {
+  string category_id = 1;                 // Category identifier
+  string name = 2;                        // Category name
+  string description = 3;                 // Category description
+  string icon_url = 4;                    // Category icon URL
+  bool is_unlocked = 5;                   // Whether category is unlocked for player
+  uint32 mission_count = 6;               // Number of missions in category
+  uint32 completed_count = 7;             // Player's completed missions in category
+  repeated MissionRequirementProto unlock_requirements = 8; // Requirements to unlock
+}
+
+// Daily/Weekly specific structures
+message DailyMissionBonusProto {
+  uint64 bonus_xp = 1;                    // Bonus XP for completing all daily missions
+  uint64 bonus_ntc = 2;                   // Bonus NTC for completing all daily missions
+  repeated MissionRewardProto bonus_rewards = 3; // Additional bonus rewards
+  bool is_claimed = 4;                    // Whether player claimed bonus today
+}
+
+message WeeklyMissionBonusProto {
+  uint64 bonus_xp = 1;                    // Bonus XP for completing all weekly missions
+  uint64 bonus_ntc = 2;                   // Bonus NTC for completing all weekly missions
+  repeated MissionRewardProto bonus_rewards = 3; // Additional bonus rewards
+  bool is_claimed = 4;                    // Whether player claimed bonus this week
+}
+
+// Statistics and analytics
+message PlayerMissionStatsProto {
+  string player_id = 1;                   // Player UUID
+  uint32 total_missions_completed = 2;    // Total missions completed
+  uint32 daily_missions_completed_today = 3; // Daily missions completed today
+  uint32 weekly_missions_completed_this_week = 4; // Weekly missions this week
+  uint64 total_xp_from_missions = 5;      // Total XP earned from missions
+  uint64 total_ntc_from_missions = 6;     // Total NTC earned from missions
+  uint32 current_streak_days = 7;         // Current daily completion streak
+  uint32 longest_streak_days = 8;         // Longest daily completion streak
+  map<string, uint32> category_completion_counts = 9; // Completions by category
+  map<string, uint32> difficulty_completion_counts = 10; // Completions by difficulty
+  int64 last_daily_completion = 11;       // Last daily mission completion
+  int64 last_weekly_completion = 12;      // Last weekly mission completion
+}
+
+message MissionCatalogStatsProto {
+  uint32 total_available_missions = 1;    // Total missions available to player
+  uint32 unlocked_missions = 2;           // Missions player can start
+  uint32 in_progress_missions = 3;        // Missions currently in progress
+  uint32 completed_missions = 4;          // Missions completed by player
+  map<string, uint32> missions_by_category = 5; // Mission count by category
+  map<string, uint32> missions_by_difficulty = 6; // Mission count by difficulty
+}
+
+message MissionHistoryStatsProto {
+  uint32 total_completions = 1;           // Total mission completions
+  uint64 total_xp_earned = 2;             // Total XP from completed missions
+  uint64 total_ntc_earned = 3;            // Total NTC from completed missions
+  uint32 total_nfts_earned = 4;           // Total NFTs from mission rewards
+  float average_completion_time_hours = 5; // Average time to complete missions
+  string most_completed_category = 6;     // Category with most completions
+  string favorite_difficulty = 7;         // Most frequently completed difficulty
+}
+
+message MissionAnalyticsProto {
+  uint32 global_completion_count = 1;     // Total global completions
+  float global_completion_rate = 2;       // Global completion rate percentage
+  uint32 global_attempt_count = 3;        // Total global attempts
+  float average_completion_time_hours = 4; // Average completion time
+  uint32 player_completion_count = 5;     // Player's completion count
+  int64 player_best_time_seconds = 6;     // Player's best completion time
+  uint32 player_global_rank = 7;          // Player's rank for this mission
+}
+
+// Filter and sort structures
+message MissionFiltersProto {
+  repeated MissionTypeProto mission_types = 1;
+  repeated MissionCategoryProto categories = 2;
+  repeated uint32 difficulty_levels = 3;   // Difficulty levels to include
+  repeated MissionStatusProto statuses = 4;
+  bool only_available = 5;                // Only show currently available missions
+  bool only_completable = 6;              // Only show missions player can complete
+  uint32 max_time_limit_hours = 7;        // Maximum time limit
+}
+
+message MissionSortProto {
+  enum SortField {
+    SORT_FIELD_UNSPECIFIED = 0;
+    DIFFICULTY_ASC = 1;
+    DIFFICULTY_DESC = 2;
+    REWARDS_ASC = 3;
+    REWARDS_DESC = 4;
+    TIME_LIMIT_ASC = 5;
+    TIME_LIMIT_DESC = 6;
+    POPULARITY = 7;                       // Based on completion rate
+    RECENTLY_ADDED = 8;
+    EXPIRING_SOON = 9;
+  }
+  SortField sort_field = 1;
+}
+
+message MissionHistoryFiltersProto {
+  repeated MissionTypeProto mission_types = 1;
+  repeated string mission_categories = 2;
+  int64 start_timestamp = 3;              // Completion date range start
+  int64 end_timestamp = 4;                // Completion date range end
+  repeated uint32 difficulty_levels = 5;
+}
+
+// Enums
+enum MissionTypeProto {
+  MISSION_TYPE_UNSPECIFIED = 0;
+  STORY = 1;                              // Main story missions
+  DAILY = 2;                              // Daily missions
+  WEEKLY = 3;                             // Weekly missions
+  ACHIEVEMENT = 4;                        // Achievement-based missions
+  EVENT = 5;                              // Special event missions
+  TUTORIAL = 6;                           // Tutorial missions
+  CHALLENGE = 7;                          // High-difficulty challenge missions
+}
+
+enum MissionStatusProto {
+  MISSION_STATUS_UNSPECIFIED = 0;
+  LOCKED = 1;                             // Mission not yet available
+  AVAILABLE = 2;                          // Mission available to start
+  IN_PROGRESS = 3;                        // Mission started but not completed
+  COMPLETED = 4;                          // Mission completed
+  EXPIRED = 5;                            // Mission expired before completion
+  FAILED = 6;                             // Mission failed (if applicable)
+}
+
+enum ObjectiveTypeProto {
+  OBJECTIVE_TYPE_UNSPECIFIED = 0;
+  KILL_ENEMIES = 1;                       // Kill X enemies
+  COLLECT_ITEMS = 2;                      // Collect X items
+  COMPLETE_LEVELS = 3;                    // Complete X levels/areas
+  EARN_XP = 4;                            // Earn X experience points
+  SPEND_CURRENCY = 5;                     // Spend X NTC or credits
+  EQUIP_ITEMS = 6;                        // Equip X items of certain type
+  WIN_BATTLES = 7;                        // Win X battles/matches
+  CRAFT_ITEMS = 8;                        // Craft X items
+  TRADE_NFTS = 9;                         // Trade X NFTs
+  COMPLETE_MISSIONS = 10;                 // Complete X other missions
+}
+
+enum RequirementTypeProto {
+  REQUIREMENT_TYPE_UNSPECIFIED = 0;
+  PLAYER_LEVEL = 1;                       // Minimum player level
+  MISSION_COMPLETED = 2;                  // Specific mission must be completed
+  ITEM_OWNED = 3;                         // Must own specific item/NFT
+  CURRENCY_AMOUNT = 4;                    // Must have minimum currency
+  CLASS_UNLOCKED = 5;                     // Must have specific class unlocked
+  ACHIEVEMENT_EARNED = 6;                 // Must have specific achievement
+}
+
+enum RewardTypeProto {
+  REWARD_TYPE_UNSPECIFIED = 0;
+  XP = 1;                                 // Experience points
+  NTC = 2;                                // NTC currency
+  CREDITS = 3;                            // Fiat credits
+  NFT = 4;                                // Specific NFT
+  RANDOM_NFT = 5;                         // Random NFT from pool
+  TITLE = 6;                              // Player title/badge
+  COSMETIC = 7;                           // Cosmetic item
+}
+
+// Health check message
+message HealthRequest {
+  string trace_id = 1;
+}
+
+message HealthResponse {
+  string status = 1;
+  string version = 2;
+  int64 timestamp = 3;
+  map<string, string> details = 4;
+}

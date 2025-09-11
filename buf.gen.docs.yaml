@@ -1,0 +1,27 @@
+version: v2
+managed:
+  enabled: true
+plugins:
+  # Generate HTML documentation
+  - remote: buf.build/bufbuild/buf-plugin-doc
+    out: docs/generated/protobuf
+    opt:
+      - format=html
+      - title=BUNKERVERSE Platform API Documentation
+      - version=v0.3.0
+      - template=custom
+  # Generate OpenAPI/Swagger specs
+  - remote: buf.build/grpc-ecosystem/openapiv2
+    out: docs/generated/openapi
+    opt:
+      - logtostderr=true
+      - json_names_for_fields=true
+      - simple_operation_ids=true
+      - openapi_naming_strategy=fqn
+  # Generate Markdown documentation  
+  - remote: buf.build/bufbuild/buf-plugin-doc
+    out: docs/generated/markdown
+    opt:
+      - format=markdown
+      - title=BUNKERVERSE Platform API Reference
+      - version=v0.3.0

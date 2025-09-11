@@ -1,0 +1,314 @@
+syntax = "proto3";
+
+package bunkerverse.services.v1;
+
+import "bunkerverse/core/v1/types.proto";
+import "bunkerverse/core/v1/enums.proto";
+
+// Account Service - Player profiles and account management
+service AccountService {
+  // Player profile management
+  rpc GetPlayerProfile(GetPlayerProfileRequest) returns (GetPlayerProfileResponse);
+  rpc UpdatePlayerProfile(UpdatePlayerProfileRequest) returns (UpdatePlayerProfileResponse);
+  rpc DeletePlayerAccount(DeletePlayerAccountRequest) returns (DeletePlayerAccountResponse);
+  
+  // Bunkerguard robot management
+  rpc GetPlayerBunkerguards(GetPlayerBunkerguardsRequest) returns (GetPlayerBunkerguardsResponse);
+  rpc SetActiveBunkerguard(SetActiveBunkerguardRequest) returns (SetActiveBunkerguardResponse);
+  rpc UpdateBunkerguardClass(UpdateBunkerguardClassRequest) returns (UpdateBunkerguardClassResponse);
+  
+  // Player statistics and progress
+  rpc GetPlayerStats(GetPlayerStatsRequest) returns (GetPlayerStatsResponse);
+  rpc GetPlayerAchievements(GetPlayerAchievementsRequest) returns (GetPlayerAchievementsResponse);
+  rpc GetPlayerTransactionHistory(GetPlayerTransactionHistoryRequest) returns (GetPlayerTransactionHistoryResponse);
+  
+  // Balance management
+  rpc GetPlayerBalances(GetPlayerBalancesRequest) returns (GetPlayerBalancesResponse);
+  rpc UpdatePlayerXp(UpdatePlayerXpRequest) returns (UpdatePlayerXpResponse);
+  
+  // Health check
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+// Player profile messages
+message GetPlayerProfileRequest {
+  string player_id = 1;                   // Required, validated as UUID
+  bool include_inventory = 2;             // Optional performance optimization
+  bool include_transaction_history = 3;   // From L3 chain events
+  bool include_achievements = 4;          // Include achievement data
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message GetPlayerProfileResponse {
+  oneof result {
+    PlayerProfileResponseProto profile = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message PlayerProfileResponseProto {
+  string player_id = 1;                   // Player UUID
+  string bunker_tag = 2;                  // Player username
+  string email = 3;                       // Player email
+  string display_name = 4;                // Display name
+  string avatar_url = 5;                  // Profile picture URL
+  bunkerverse.core.v1.BalancesProto balances = 6; // XP, NTC, Credits
+  bunkerverse.core.v1.ActiveBunkerguardDataProto active_bunkerguard = 7;
+  repeated string owned_nft_ids = 8;      // All owned NFT IDs (if requested)
+  PlayerStatsProto stats = 9;             // Player statistics
+  repeated AchievementProto achievements = 10; // Achievements (if requested)
+  repeated TransactionHistoryEntryProto transaction_history = 11; // Recent transactions (if requested)
+  int64 account_created_at = 12;          // Account creation timestamp
+  int64 last_active_at = 13;              // Last activity timestamp
+  uint32 player_level = 14;               // Calculated from total XP
+}
+
+message UpdatePlayerProfileRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  optional string display_name = 2;       // New display name (max 64 chars)
+  optional string avatar_url = 3;         // New avatar URL
+  optional string bio = 4;                // Player bio (max 256 chars)
+  optional bool privacy_public_profile = 5; // Public profile visibility
+  optional bool privacy_show_inventory = 6; // Show inventory to others
+  string trace_id = 7;                    // Request tracing ID
+}
+
+message UpdatePlayerProfileResponse {
+  oneof result {
+    UpdatePlayerProfileSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message UpdatePlayerProfileSuccess {
+  PlayerProfileResponseProto updated_profile = 1; // Updated profile data
+}
+
+message DeletePlayerAccountRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string confirmation_token = 2;          // Email confirmation token
+  string password_confirmation = 3;       // Password confirmation
+  bool transfer_nfts = 4;                 // Whether to transfer NFTs to another account
+  optional string transfer_to_player_id = 5; // Target player for NFT transfer
+  string trace_id = 6;                    // Request tracing ID
+}
+
+message DeletePlayerAccountResponse {
+  oneof result {
+    DeletePlayerAccountSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message DeletePlayerAccountSuccess {
+  bool account_deleted = 1;               // Confirmation of deletion
+  uint32 nfts_transferred = 2;            // Number of NFTs transferred
+}
+
+// Bunkerguard management messages
+message GetPlayerBunkerguardsRequest {
+  string player_id = 1;                   // Player UUID
+  bool include_inactive = 2;              // Include robots not currently active
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message GetPlayerBunkerguardsResponse {
+  oneof result {
+    GetPlayerBunkerguardsSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetPlayerBunkerguardsSuccess {
+  repeated BunkerguardRobotProto bunkerguards = 1; // All owned robots
+  optional string active_robot_id = 2;    // Currently active robot ID
+}
+
+message BunkerguardRobotProto {
+  string robot_id = 1;                    // Robot NFT ID
+  string robot_name = 2;                  // Custom name given by player
+  bunkerverse.core.v1.BunkerClassProto current_class = 3;
+  bunkerverse.core.v1.ClassAffiliationProto affiliation = 4;
+  uint32 level = 5;                       // Current level (1-100)
+  uint64 total_xp = 6;                    // Total XP accumulated
+  uint64 xp_to_next_level = 7;            // XP needed for next level
+  bunkerverse.core.v1.CoreStatsProto base_stats = 8;    // Base stats without equipment
+  bunkerverse.core.v1.CoreStatsProto final_stats = 9;   // Final stats with equipment
+  map<string, string> equipped_items = 10; // slot -> nft_id mapping
+  bool is_active = 11;                    // Currently selected robot
+  int64 created_at = 12;                  // Robot acquisition timestamp
+  int64 last_used_at = 13;                // Last time robot was active
+}
+
+message SetActiveBunkerguardRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string robot_id = 2;                    // Robot NFT ID to set as active
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message SetActiveBunkerguardResponse {
+  oneof result {
+    SetActiveBunkerguardSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message SetActiveBunkerguardSuccess {
+  bunkerverse.core.v1.ActiveBunkerguardDataProto updated_active_robot = 1;
+}
+
+message UpdateBunkerguardClassRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string robot_id = 2;                    // Robot NFT ID
+  bunkerverse.core.v1.BunkerClassProto new_class = 3;  // New class to assign
+  bunkerverse.core.v1.ClassAffiliationProto new_affiliation = 4; // New affiliation
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message UpdateBunkerguardClassResponse {
+  oneof result {
+    UpdateBunkerguardClassSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message UpdateBunkerguardClassSuccess {
+  BunkerguardRobotProto updated_robot = 1; // Updated robot data
+}
+
+// Statistics and progress messages
+message GetPlayerStatsRequest {
+  string player_id = 1;                   // Player UUID
+  string trace_id = 2;                    // Request tracing ID
+}
+
+message GetPlayerStatsResponse {
+  oneof result {
+    PlayerStatsProto stats = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message PlayerStatsProto {
+  uint32 player_level = 1;                // Calculated from total XP
+  uint64 total_xp = 2;                    // Total XP across all activities
+  uint64 xp_to_next_level = 3;            // XP needed for next player level
+  uint32 missions_completed = 4;          // Total missions completed
+  uint32 nfts_owned = 5;                  // Current NFT count
+  uint32 nfts_traded = 6;                 // Total NFTs bought/sold
+  uint64 total_ntc_earned = 7;            // Lifetime NTC earned
+  uint64 total_ntc_spent = 8;             // Lifetime NTC spent
+  uint32 days_active = 9;                 // Total days with activity
+  int64 last_mission_completed_at = 10;   // Last mission completion timestamp
+  map<string, uint64> achievement_counts = 11; // Achievement type -> count
+}
+
+message GetPlayerAchievementsRequest {
+  string player_id = 1;                   // Player UUID
+  bool include_locked = 2;                // Include achievements not yet earned
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message GetPlayerAchievementsResponse {
+  oneof result {
+    GetPlayerAchievementsSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetPlayerAchievementsSuccess {
+  repeated AchievementProto achievements = 1; // Player's achievements
+}
+
+message AchievementProto {
+  string achievement_id = 1;              // Unique achievement identifier
+  string title = 2;                       // Achievement title
+  string description = 3;                 // Achievement description
+  string icon_url = 4;                    // Achievement icon URL
+  bunkerverse.core.v1.ItemRarityProto rarity = 5; // Achievement rarity level
+  bool is_unlocked = 6;                   // Whether player has earned it
+  int64 unlocked_at = 7;                  // When achievement was earned (if unlocked)
+  uint32 progress_current = 8;            // Current progress towards achievement
+  uint32 progress_required = 9;           // Total progress required
+  repeated string rewards = 10;           // NFT IDs or other rewards granted
+}
+
+message GetPlayerTransactionHistoryRequest {
+  string player_id = 1;                   // Player UUID
+  bunkerverse.core.v1.PaginationProto pagination = 2; // Pagination parameters
+  string transaction_type_filter = 3;     // Optional filter: "nft_trade", "ntc_transfer", etc.
+  int64 start_timestamp = 4;              // Optional start date filter
+  int64 end_timestamp = 5;                // Optional end date filter
+  string trace_id = 6;                    // Request tracing ID
+}
+
+message GetPlayerTransactionHistoryResponse {
+  oneof result {
+    GetPlayerTransactionHistorySuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetPlayerTransactionHistorySuccess {
+  repeated TransactionHistoryEntryProto transactions = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+}
+
+message TransactionHistoryEntryProto {
+  string transaction_id = 1;              // Unique transaction identifier
+  string transaction_type = 2;            // "nft_purchase", "nft_sale", "ntc_transfer", etc.
+  string description = 3;                 // Human-readable description
+  uint64 ntc_amount = 4;                  // NTC amount involved (if applicable)
+  repeated string nft_ids = 5;            // NFT IDs involved (if applicable)
+  string counterparty_player_id = 6;      // Other player involved (if applicable)
+  bunkerverse.core.v1.TransactionStatusProto status = 7; // Transaction status
+  int64 timestamp = 8;                    // Transaction timestamp
+  string l3_transaction_hash = 9;         // L3 chain transaction hash (if applicable)
+}
+
+// Balance management messages
+message GetPlayerBalancesRequest {
+  string player_id = 1;                   // Player UUID
+  string trace_id = 2;                    // Request tracing ID
+}
+
+message GetPlayerBalancesResponse {
+  oneof result {
+    bunkerverse.core.v1.BalancesProto balances = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message UpdatePlayerXpRequest {
+  string player_id = 1;                   // Player UUID (from JWT or admin)
+  uint64 xp_amount = 2;                   // XP to add
+  string xp_source = 3;                   // Reason for XP award
+  optional string robot_id = 4;           // Robot to also award XP to
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message UpdatePlayerXpResponse {
+  oneof result {
+    UpdatePlayerXpSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message UpdatePlayerXpSuccess {
+  uint64 new_total_xp = 1;                // Player's new total XP
+  uint32 new_player_level = 2;            // Player's new level (if changed)
+  bool level_up_occurred = 3;             // True if player leveled up
+  repeated AchievementProto new_achievements = 4; // Any achievements unlocked
+}
+
+// Health check (reused from identity service)
+message HealthRequest {
+  string trace_id = 1;
+}
+
+message HealthResponse {
+  string status = 1;
+  string version = 2;
+  int64 timestamp = 3;
+  map<string, string> details = 4;
+}

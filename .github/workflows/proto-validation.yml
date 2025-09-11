@@ -1,0 +1,197 @@
+name: Protocol Buffer Validation
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths: 
+      - 'schemas/proto/**'
+      - 'buf.yaml'
+      - 'buf.gen.yaml'
+      - 'buf.work.yaml'
+  pull_request:
+    branches: [ main, develop ]
+    paths:
+      - 'schemas/proto/**'
+      - 'buf.yaml'
+      - 'buf.gen.yaml' 
+      - 'buf.work.yaml'
+
+jobs:
+  proto-lint:
+    name: Lint Protocol Buffers
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Needed for breaking change detection
+
+      - name: Setup buf CLI
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ github.token }}
+
+      - name: Validate buf configuration
+        run: buf config validate
+
+      - name: Lint protobuf files
+        run: buf lint
+
+      - name: Check for breaking changes
+        if: github.event_name == 'pull_request'
+        run: buf breaking --against 'https://github.com/${{ github.repository }}.git#branch=main'
+
+  proto-generate:
+    name: Generate and Validate Code
+    runs-on: ubuntu-latest
+    needs: proto-lint
+    steps:
+      - name: Checkout code  
+        uses: actions/checkout@v4
+
+      - name: Setup buf CLI
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ github.token }}
+
+      - name: Install Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          profile: minimal
+          override: true
+
+      - name: Generate protobuf code
+        run: buf generate
+
+      - name: Validate generated Rust code compiles
+        run: |
+          cd libs/common-rust
+          cargo check --features protobuf-build
+
+      - name: Cache generated code
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-proto-code
+          path: |
+            libs/common-rust/src/generated/
+            services/web-client/src/generated/
+            services/cxx-qt-client/src/generated/
+          retention-days: 7
+
+  schema-validation:
+    name: Schema Validation & Security Check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup buf CLI  
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ github.token }}
+
+      - name: Run comprehensive schema validation
+        run: |
+          echo "🔍 Validating schema consistency..."
+          
+          # Check for required fields in critical types
+          if ! grep -r "required.*player_id" schemas/proto/; then
+            echo "⚠️  Warning: player_id should be marked as required in critical operations"
+          fi
+          
+          # Validate enum zero values
+          find schemas/proto -name "*.proto" -exec grep -L "_UNSPECIFIED = 0" {} \; | while read file; do
+            if grep -q "enum " "$file"; then
+              echo "❌ Error: $file contains enums without _UNSPECIFIED = 0"
+              exit 1
+            fi
+          done
+          
+          echo "✅ Schema validation completed"
+
+      - name: Security validation
+        run: |
+          echo "🔒 Running security validation..."
+          
+          # Check for sensitive data patterns
+          if grep -r -i "password\|secret\|key\|token" schemas/proto/ --include="*.proto"; then
+            echo "⚠️  Warning: Potential sensitive data found in proto files"
+            echo "Ensure sensitive fields are properly marked and handled"
+          fi
+          
+          # Validate field numbering for wire format stability
+          python3 << 'EOF'
+          import os
+          import re
+          
+          def check_field_numbers(file_path):
+              with open(file_path, 'r') as f:
+                  content = f.read()
+              
+              # Find all field declarations
+              field_pattern = r'^\s*(?:repeated\s+|optional\s+|required\s+)?(\w+)\s+(\w+)\s+=\s+(\d+);'
+              fields = re.findall(field_pattern, content, re.MULTILINE)
+              
+              numbers = [int(num) for _, _, num in fields]
+              if numbers != sorted(set(numbers)):
+                  print(f"❌ Error: {file_path} has non-sequential or duplicate field numbers")
+                  return False
+              return True
+          
+          all_valid = True
+          for root, dirs, files in os.walk('schemas/proto'):
+              for file in files:
+                  if file.endswith('.proto'):
+                      if not check_field_numbers(os.path.join(root, file)):
+                          all_valid = False
+          
+          if not all_valid:
+              exit(1)
+          print("✅ Field numbering validation passed")
+          EOF
+          
+          echo "✅ Security validation completed"
+
+  deploy-docs:
+    name: Deploy Documentation
+    runs-on: ubuntu-latest
+    needs: [proto-lint, proto-generate, schema-validation]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup buf CLI
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ github.token }}
+
+      - name: Generate documentation
+        run: |
+          chmod +x scripts/generate-docs.sh
+          ./scripts/generate-docs.sh
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload documentation
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./docs/generated
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Create deployment summary
+        run: |
+          echo "## 📚 Documentation Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "Documentation has been successfully deployed to GitHub Pages." >> $GITHUB_STEP_SUMMARY
+          echo "- **URL**: ${{ steps.deployment.outputs.page_url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Version**: v0.3.0" >> $GITHUB_STEP_SUMMARY
+          echo "- **Commit**: ${{ github.sha }}" >> $GITHUB_STEP_SUMMARY

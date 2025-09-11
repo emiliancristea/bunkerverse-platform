@@ -1,0 +1,321 @@
+syntax = "proto3";
+
+package bunkerverse.services.v1;
+
+import "bunkerverse/core/v1/types.proto";
+import "bunkerverse/core/v1/enums.proto";
+
+// Marketplace Service - NFT trading and market operations
+service MarketplaceService {
+  // Market browsing and search
+  rpc GetMarketListings(GetMarketListingsRequest) returns (GetMarketListingsResponse);
+  rpc GetListingDetails(GetListingDetailsRequest) returns (GetListingDetailsResponse);
+  rpc SearchMarketplace(SearchMarketplaceRequest) returns (SearchMarketplaceResponse);
+  
+  // NFT information
+  rpc GetNftDetails(GetNftDetailsRequest) returns (GetNftDetailsResponse);
+  rpc GetPlayerOwnedNfts(GetPlayerOwnedNftsRequest) returns (GetPlayerOwnedNftsResponse);
+  
+  // Trading operations (submits L3 transactions)
+  rpc CreateListing(CreateListingRequest) returns (CreateListingResponse);
+  rpc CancelListing(CancelListingRequest) returns (CancelListingResponse);
+  rpc ExecuteTradeIntent(ExecuteTradeIntentRequest) returns (ExecuteTradeIntentResponse);
+  
+  // Transaction management
+  rpc SubmitTransaction(bunkerverse.core.v1.TransactionRequestProto) returns (bunkerverse.core.v1.TransactionReceiptProto);
+  rpc GetTransactionReceipt(GetTransactionReceiptRequest) returns (bunkerverse.core.v1.TransactionReceiptProto);
+  
+  // Health check
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+// Market browsing messages
+message GetMarketListingsRequest {
+  bunkerverse.core.v1.PaginationProto pagination = 1;
+  MarketplaceFiltersProto filters = 2;    // Optional filters
+  MarketplaceSortProto sort = 3;          // Sort options
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message GetMarketListingsResponse {
+  oneof result {
+    GetMarketListingsSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetMarketListingsSuccess {
+  repeated MarketListingProto listings = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  MarketStatsProto market_stats = 3;      // Market summary statistics
+}
+
+message MarketListingProto {
+  string listing_id = 1;                  // Unique listing identifier
+  bunkerverse.core.v1.NftDetailsProto nft_details = 2; // NFT being sold
+  bunkerverse.core.v1.NftMutableStateProto nft_state = 3; // Current NFT state
+  string seller_player_id = 4;            // Seller's player UUID
+  string seller_bunker_tag = 5;           // Seller's display name
+  uint64 listing_price_ntc_wei = 6;       // Price in NTC wei
+  bunkerverse.core.v1.MarketStatusProto listing_type = 7; // Sale or auction
+  int64 listing_created_at = 8;           // Listing creation timestamp
+  int64 listing_expires_at = 9;           // Listing expiration timestamp
+  uint32 view_count = 10;                 // Number of views
+  uint32 favorite_count = 11;             // Number of users who favorited
+  repeated string similar_listings = 12;  // IDs of similar listings
+}
+
+message GetListingDetailsRequest {
+  string listing_id = 1;                  // Listing identifier
+  string requesting_player_id = 2;        // Player requesting details (for personalization)
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message GetListingDetailsResponse {
+  oneof result {
+    MarketListingDetailProto listing = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message MarketListingDetailProto {
+  MarketListingProto listing = 1;         // Basic listing information
+  repeated PriceHistoryEntryProto price_history = 2; // Historical prices for this NFT
+  repeated MarketListingProto similar_listings = 3; // Similar items currently listed
+  MarketAnalyticsProto analytics = 4;     // Market analytics for this item type
+  bool is_favorited_by_requester = 5;     // Whether requesting player favorited this
+}
+
+message SearchMarketplaceRequest {
+  string search_query = 1;                // Text search query
+  MarketplaceFiltersProto filters = 2;    // Search filters
+  MarketplaceSortProto sort = 3;          // Sort options
+  bunkerverse.core.v1.PaginationProto pagination = 4;
+  string requesting_player_id = 5;        // Player performing search
+  string trace_id = 6;                    // Request tracing ID
+}
+
+message SearchMarketplaceResponse {
+  oneof result {
+    SearchMarketplaceSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message SearchMarketplaceSuccess {
+  repeated MarketListingProto listings = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  repeated string search_suggestions = 3; // Alternative search terms
+  map<string, uint32> facet_counts = 4;   // Facet counts for filtering UI
+}
+
+// NFT information messages
+message GetNftDetailsRequest {
+  string nft_id = 1;                      // NFT identifier
+  string requesting_player_id = 2;        // Player requesting details
+  bool include_market_data = 3;           // Include market history/analytics
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message GetNftDetailsResponse {
+  oneof result {
+    NftDetailsResponseProto nft = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message NftDetailsResponseProto {
+  bunkerverse.core.v1.NftDetailsProto nft_details = 1; // Immutable NFT properties
+  bunkerverse.core.v1.NftMutableStateProto nft_state = 2; // Current mutable state
+  repeated PriceHistoryEntryProto price_history = 3; // Historical sale prices (if requested)
+  MarketAnalyticsProto market_analytics = 4; // Market data for this item type (if requested)
+  string metadata_json = 5;               // Full IPFS metadata JSON
+}
+
+message GetPlayerOwnedNftsRequest {
+  string player_id = 1;                   // Player UUID
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  NftOwnershipFiltersProto filters = 3;   // Optional filters
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message GetPlayerOwnedNftsResponse {
+  oneof result {
+    GetPlayerOwnedNftsSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetPlayerOwnedNftsSuccess {
+  repeated PlayerOwnedNftProto owned_nfts = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  InventoryStatsProto inventory_stats = 3; // Player's inventory statistics
+}
+
+message PlayerOwnedNftProto {
+  bunkerverse.core.v1.NftDetailsProto nft_details = 1;
+  bunkerverse.core.v1.NftMutableStateProto nft_state = 2;
+  int64 acquired_at = 3;                  // When player acquired this NFT
+  string acquisition_method = 4;          // "purchase", "mission_reward", "mint", etc.
+  bool is_equipped = 5;                   // Currently equipped on active robot
+  uint64 estimated_market_value_wei = 6;  // Current estimated market value
+}
+
+// Trading operation messages
+message CreateListingRequest {
+  string player_id = 1;                   // Seller's player UUID (from JWT)
+  string nft_id = 2;                      // NFT to list for sale
+  uint64 price_ntc_wei = 3;               // Listing price in NTC wei
+  bunkerverse.core.v1.MarketStatusProto listing_type = 4; // LISTED_FOR_SALE or LISTED_FOR_AUCTION
+  int64 expiry_timestamp = 5;             // When listing should expire
+  string trace_id = 6;                    // Request tracing ID
+}
+
+message CreateListingResponse {
+  oneof result {
+    CreateListingSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message CreateListingSuccess {
+  string listing_id = 1;                  // Created listing identifier
+  string transaction_hash = 2;            // L3 transaction hash
+  bunkerverse.core.v1.TransactionStatusProto transaction_status = 3;
+}
+
+message CancelListingRequest {
+  string player_id = 1;                   // Seller's player UUID (from JWT)
+  string listing_id = 2;                  // Listing to cancel
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message CancelListingResponse {
+  oneof result {
+    CancelListingSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message CancelListingSuccess {
+  bool cancelled = 1;                     // Confirmation of cancellation
+  string transaction_hash = 2;            // L3 transaction hash
+  bunkerverse.core.v1.TransactionStatusProto transaction_status = 3;
+}
+
+message ExecuteTradeIntentRequest {
+  string buyer_player_id = 1;             // Buyer's player UUID (from JWT)
+  string listing_id = 2;                  // Listing to purchase
+  uint64 offered_price_ntc_wei = 3;       // Price buyer is willing to pay
+  uint64 max_gas_price = 4;               // Maximum gas price for transaction
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message ExecuteTradeIntentResponse {
+  oneof result {
+    ExecuteTradeIntentSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message ExecuteTradeIntentSuccess {
+  string transaction_hash = 1;            // L3 purchase transaction hash
+  bunkerverse.core.v1.TransactionStatusProto transaction_status = 2;
+  uint64 final_price_paid_wei = 3;        // Final price paid (including fees)
+  uint64 marketplace_fee_wei = 4;         // Fee paid to marketplace
+}
+
+// Transaction management messages
+message GetTransactionReceiptRequest {
+  string transaction_hash = 1;            // L3 transaction hash
+  string trace_id = 2;                    // Request tracing ID
+}
+
+// Filter and sort messages
+message MarketplaceFiltersProto {
+  repeated bunkerverse.core.v1.ItemTypeProto item_types = 1;
+  repeated bunkerverse.core.v1.ItemRarityProto rarities = 2;
+  repeated bunkerverse.core.v1.BunkerClassProto class_affinities = 3;
+  repeated bunkerverse.core.v1.ClassAffiliationProto affiliations = 4;
+  uint64 min_price_ntc_wei = 5;           // Minimum price filter
+  uint64 max_price_ntc_wei = 6;           // Maximum price filter
+  repeated string seller_player_ids = 7;   // Filter by specific sellers
+  bool exclude_own_listings = 8;          // Exclude requester's own listings
+}
+
+message NftOwnershipFiltersProto {
+  repeated bunkerverse.core.v1.ItemTypeProto item_types = 1;
+  repeated bunkerverse.core.v1.ItemRarityProto rarities = 2;
+  repeated bunkerverse.core.v1.ItemConditionProto conditions = 3;
+  bool only_equipped = 4;                 // Only show equipped items
+  bool only_unequipped = 5;               // Only show unequipped items
+  bool only_marketable = 6;               // Only show items that can be sold
+}
+
+message MarketplaceSortProto {
+  enum SortField {
+    SORT_FIELD_UNSPECIFIED = 0;
+    PRICE_ASC = 1;
+    PRICE_DESC = 2;
+    CREATED_ASC = 3;
+    CREATED_DESC = 4;
+    RARITY_ASC = 5;
+    RARITY_DESC = 6;
+    POPULARITY = 7;                       // Based on views/favorites
+  }
+  SortField sort_field = 1;
+}
+
+// Analytics and statistics messages
+message MarketStatsProto {
+  uint32 total_listings = 1;              // Total active listings
+  uint64 total_volume_24h_wei = 2;        // 24h trading volume in NTC wei
+  uint64 average_price_wei = 3;           // Average listing price
+  uint32 total_sales_24h = 4;             // Number of sales in 24h
+  repeated ItemTypeStatsProto item_type_stats = 5; // Stats by item type
+}
+
+message ItemTypeStatsProto {
+  bunkerverse.core.v1.ItemTypeProto item_type = 1;
+  uint32 active_listings = 2;             // Active listings for this type
+  uint64 floor_price_wei = 3;             // Lowest current listing price
+  uint64 average_price_wei = 4;           // Average listing price
+  uint64 volume_24h_wei = 5;              // 24h volume for this type
+}
+
+message PriceHistoryEntryProto {
+  uint64 sale_price_wei = 1;              // Sale price in NTC wei
+  int64 sale_timestamp = 2;               // When sale occurred
+  string buyer_player_id = 3;             // Buyer (anonymized if privacy enabled)
+  string seller_player_id = 4;            // Seller (anonymized if privacy enabled)
+}
+
+message MarketAnalyticsProto {
+  uint64 floor_price_wei = 1;             // Current floor price
+  uint64 average_price_7d_wei = 2;        // 7-day average price
+  uint64 average_price_30d_wei = 3;       // 30-day average price
+  uint32 total_sales_7d = 4;              // Sales in last 7 days
+  uint32 total_sales_30d = 5;             // Sales in last 30 days
+  repeated PriceHistoryEntryProto recent_sales = 6; // Recent sale history
+}
+
+message InventoryStatsProto {
+  uint32 total_nfts = 1;                  // Total NFTs owned
+  uint64 estimated_total_value_wei = 2;   // Estimated total inventory value
+  map<string, uint32> item_type_counts = 3; // Count by item type
+  map<string, uint32> rarity_counts = 4;  // Count by rarity
+  uint32 equipped_items = 5;              // Currently equipped items
+  uint32 marketable_items = 6;            // Items that can be listed for sale
+}
+
+// Health check message
+message HealthRequest {
+  string trace_id = 1;
+}
+
+message HealthResponse {
+  string status = 1;
+  string version = 2;
+  int64 timestamp = 3;
+  map<string, string> details = 4;
+}

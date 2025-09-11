@@ -1,0 +1,943 @@
+syntax = "proto3";
+
+package bunkerverse.services.v1;
+
+import "bunkerverse/core/v1/types.proto";
+import "bunkerverse/core/v1/enums.proto";
+
+// AI Data Service - Context data aggregation for NAR generation
+service AIDataService {
+  // Context data aggregation
+  rpc GetAIAgentInputDataContext(GetAIAgentInputDataContextRequest) returns (GetAIAgentInputDataContextResponse);
+  rpc GetPersonalizedNarrativeContext(GetPersonalizedNarrativeContextRequest) returns (GetPersonalizedNarrativeContextResponse);
+  rpc GetMissionBriefingContext(GetMissionBriefingContextRequest) returns (GetMissionBriefingContextResponse);
+  rpc GetCombatNarrativeContext(GetCombatNarrativeContextRequest) returns (GetCombatNarrativeContextResponse);
+  
+  // Narrative generation triggers
+  rpc RequestNarrativeGeneration(RequestNarrativeGenerationRequest) returns (RequestNarrativeGenerationResponse);
+  rpc GetNarrativeHistory(GetNarrativeHistoryRequest) returns (GetNarrativeHistoryResponse);
+  rpc UpdateNarrativePreferences(UpdateNarrativePreferencesRequest) returns (UpdateNarrativePreferencesResponse);
+  
+  // Analytics and learning
+  rpc RecordNarrativeInteraction(RecordNarrativeInteractionRequest) returns (RecordNarrativeInteractionResponse);
+  rpc GetNarrativeAnalytics(GetNarrativeAnalyticsRequest) returns (GetNarrativeAnalyticsResponse);
+  rpc OptimizeContextGeneration(OptimizeContextGenerationRequest) returns (OptimizeContextGenerationResponse);
+  
+  // Content management
+  rpc GetLoreDatabase(GetLoreDatabaseRequest) returns (GetLoreDatabaseResponse);
+  rpc UpdatePlayerLoreProgress(UpdatePlayerLoreProgressRequest) returns (UpdatePlayerLoreProgressResponse);
+  rpc GetContextTemplates(GetContextTemplatesRequest) returns (GetContextTemplatesResponse);
+  
+  // Health check
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+// Context data aggregation messages
+message GetAIAgentInputDataContextRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  NarrativeContextTypeProto context_type = 2; // Type of context needed
+  string specific_context_id = 3;         // Specific mission/event/combat ID
+  map<string, string> context_parameters = 4; // Additional context parameters
+  bool include_full_history = 5;          // Include complete player history
+  string trace_id = 6;                    // Request tracing ID
+}
+
+message GetAIAgentInputDataContextResponse {
+  oneof result {
+    AIAgentInputDataContextProto context = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetPersonalizedNarrativeContextRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string narrative_theme = 2;             // Requested narrative theme
+  NarrativeToneProto desired_tone = 3;    // Desired narrative tone
+  uint32 max_context_length = 4;          // Maximum context length in tokens
+  repeated string focus_areas = 5;        // Areas to focus on (robot, missions, etc.)
+  string trace_id = 6;                    // Request tracing ID
+}
+
+message GetPersonalizedNarrativeContextResponse {
+  oneof result {
+    PersonalizedNarrativeContextProto context = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetMissionBriefingContextRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string mission_id = 2;                  // Mission identifier
+  bool include_strategy_hints = 3;        // Include gameplay strategy hints
+  bool include_lore_background = 4;       // Include relevant lore information
+  NarrativeToneProto briefing_tone = 5;   // Tone for mission briefing
+  string trace_id = 6;                    // Request tracing ID
+}
+
+message GetMissionBriefingContextResponse {
+  oneof result {
+    MissionBriefingContextProto context = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetCombatNarrativeContextRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string combat_session_id = 2;           // Combat session identifier
+  repeated CombatEventProto combat_events = 3; // Combat events to narrate
+  bool include_enemy_descriptions = 4;    // Include enemy descriptions
+  bool include_environment_details = 5;   // Include environment descriptions
+  string trace_id = 6;                    // Request tracing ID
+}
+
+message GetCombatNarrativeContextResponse {
+  oneof result {
+    CombatNarrativeContextProto context = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+// Narrative generation messages
+message RequestNarrativeGenerationRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  NarrativeRequestProto narrative_request = 2; // Narrative generation request
+  NarrativeGenerationParamsProto generation_params = 3; // Generation parameters
+  bool use_streaming = 4;                 // Use streaming generation
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message RequestNarrativeGenerationResponse {
+  oneof result {
+    RequestNarrativeGenerationSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message RequestNarrativeGenerationSuccess {
+  string narrative_request_id = 1;        // Unique request identifier
+  string estimated_completion_time = 2;   // Estimated completion time
+  bool generation_started = 3;            // Whether generation has started
+  string websocket_url = 4;               // WebSocket URL for streaming (if enabled)
+}
+
+message GetNarrativeHistoryRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  NarrativeHistoryFiltersProto filters = 3; // Optional filters
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message GetNarrativeHistoryResponse {
+  oneof result {
+    GetNarrativeHistorySuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetNarrativeHistorySuccess {
+  repeated GeneratedNarrativeProto narratives = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  NarrativeHistoryStatsProto history_stats = 3;
+}
+
+message UpdateNarrativePreferencesRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  NarrativePreferencesProto preferences = 2; // Updated preferences
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message UpdateNarrativePreferencesResponse {
+  oneof result {
+    UpdateNarrativePreferencesSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message UpdateNarrativePreferencesSuccess {
+  NarrativePreferencesProto updated_preferences = 1;
+  int64 updated_timestamp = 2;            // When preferences were updated
+}
+
+// Analytics and learning messages
+message RecordNarrativeInteractionRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string narrative_id = 2;                // Narrative identifier
+  NarrativeInteractionTypeProto interaction_type = 3; // Type of interaction
+  float interaction_rating = 4;           // Player rating (1.0-5.0)
+  optional string feedback_text = 5;      // Optional feedback text
+  map<string, string> interaction_metadata = 6; // Additional interaction data
+  string trace_id = 7;                    // Request tracing ID
+}
+
+message RecordNarrativeInteractionResponse {
+  oneof result {
+    RecordNarrativeInteractionSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message RecordNarrativeInteractionSuccess {
+  bool interaction_recorded = 1;          // Confirmation interaction was recorded
+  int64 recorded_timestamp = 2;           // When interaction was recorded
+}
+
+message GetNarrativeAnalyticsRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  optional string time_period = 2;        // Time period for analytics (7d, 30d, all)
+  bool include_global_stats = 3;          // Include global narrative statistics
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message GetNarrativeAnalyticsResponse {
+  oneof result {
+    NarrativeAnalyticsProto analytics = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message OptimizeContextGenerationRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  repeated NarrativeInteractionProto recent_interactions = 2; // Recent interactions
+  string optimization_target = 3;         // What to optimize for
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message OptimizeContextGenerationResponse {
+  oneof result {
+    ContextOptimizationProto optimization = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+// Content management messages
+message GetLoreDatabaseRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  repeated string lore_categories = 2;    // Specific lore categories to retrieve
+  bool include_spoiler_content = 3;       // Include content player hasn't unlocked
+  uint32 player_lore_progress_level = 4;  // Player's lore progression level
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message GetLoreDatabaseResponse {
+  oneof result {
+    LoreDatabaseProto lore_database = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message UpdatePlayerLoreProgressRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string lore_entry_id = 2;               // Lore entry unlocked
+  string unlock_trigger = 3;              // What triggered the unlock
+  int64 unlock_timestamp = 4;             // When lore was unlocked
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message UpdatePlayerLoreProgressResponse {
+  oneof result {
+    UpdatePlayerLoreProgressSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message UpdatePlayerLoreProgressSuccess {
+  PlayerLoreProgressProto updated_progress = 1;
+  repeated string newly_unlocked_entries = 2; // Additional entries unlocked
+}
+
+message GetContextTemplatesRequest {
+  string requesting_system = 1;           // System requesting templates
+  NarrativeContextTypeProto context_type = 2; // Type of templates needed
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message GetContextTemplatesResponse {
+  oneof result {
+    GetContextTemplatesSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetContextTemplatesSuccess {
+  repeated NarrativeTemplateProto templates = 1;
+  map<string, string> template_variables = 2; // Available template variables
+}
+
+// Core data structures
+message AIAgentInputDataContextProto {
+  string context_id = 1;                  // Unique context identifier
+  string player_id = 2;                   // Player UUID
+  NarrativeContextTypeProto context_type = 3; // Context type
+  
+  // Player context
+  PlayerContextProto player_context = 4;  // Current player state
+  RobotContextProto robot_context = 5;    // Active robot information
+  
+  // Game state context
+  repeated MissionContextProto mission_context = 6; // Relevant mission information
+  repeated InventoryContextProto inventory_context = 7; // Relevant inventory items
+  GameProgressContextProto progress_context = 8; // Player's overall progress
+  
+  // Narrative context
+  repeated string recent_narratives = 9;  // Recently generated narratives
+  NarrativePreferencesProto player_preferences = 10; // Player's narrative preferences
+  
+  // Lore and world context
+  repeated LoreEntryProto relevant_lore = 11; // Applicable lore entries
+  WorldStateContextProto world_context = 12; // Current world state
+  
+  // Metadata
+  uint32 context_token_count = 13;        // Estimated token count
+  float context_relevance_score = 14;     // Relevance score (0.0-1.0)
+  int64 context_generated_timestamp = 15; // When context was generated
+  uint32 context_version = 16;            // Context schema version
+}
+
+message PersonalizedNarrativeContextProto {
+  string context_id = 1;                  // Unique context identifier
+  string player_id = 2;                   // Player UUID
+  string narrative_theme = 3;             // Narrative theme
+  NarrativeToneProto tone = 4;            // Narrative tone
+  
+  // Personalization elements
+  PlayerPersonalityProto player_personality = 5; // Inferred player personality
+  repeated string player_achievements = 6; // Notable achievements
+  repeated string favorite_activities = 7; // Player's favorite activities
+  PlaystyleProfileProto playstyle = 8;    // Player's playstyle profile
+  
+  // Context elements
+  string background_setting = 9;          // Background setting description
+  repeated CharacterContextProto characters = 10; // Relevant characters
+  repeated EventContextProto recent_events = 11; // Recent significant events
+  
+  // Narrative structure
+  string narrative_framework = 12;        // Framework for generation
+  repeated string suggested_plot_points = 13; // Suggested narrative elements
+  map<string, string> template_variables = 14; // Variables for template substitution
+  
+  uint32 estimated_token_count = 15;      // Estimated context token count
+  int64 generated_timestamp = 16;         // Context generation timestamp
+}
+
+message MissionBriefingContextProto {
+  string context_id = 1;                  // Unique context identifier
+  string mission_id = 2;                  // Mission identifier
+  string player_id = 3;                   // Player UUID
+  
+  // Mission information
+  string mission_title = 4;               // Mission title
+  string mission_type = 5;                // Mission type
+  string mission_difficulty = 6;          // Mission difficulty level
+  repeated string mission_objectives = 7; // Mission objectives
+  
+  // Player preparation
+  RobotContextProto player_robot = 8;     // Player's active robot
+  repeated string equipped_items = 9;     // Currently equipped items
+  string player_readiness_assessment = 10; // Assessment of player readiness
+  
+  // Strategic information
+  repeated string strategy_suggestions = 11; // Gameplay strategy hints
+  repeated string known_threats = 12;     // Known threats in mission
+  repeated string recommended_preparations = 13; // Recommended preparations
+  
+  // Narrative elements
+  string mission_backstory = 14;          // Mission background story
+  repeated string relevant_lore_entries = 15; // Related lore
+  string environmental_description = 16;  // Mission environment
+  
+  // Briefing parameters
+  NarrativeToneProto briefing_tone = 17;  // Tone for briefing
+  bool include_spoilers = 18;             // Whether to include spoilers
+  string briefing_style = 19;             // Briefing presentation style
+  
+  int64 generated_timestamp = 20;         // Context generation timestamp
+}
+
+message CombatNarrativeContextProto {
+  string context_id = 1;                  // Unique context identifier
+  string combat_session_id = 2;           // Combat session ID
+  string player_id = 3;                   // Player UUID
+  
+  // Combat participants
+  CombatParticipantProto player_combatant = 4; // Player's combat info
+  repeated CombatParticipantProto enemies = 5; // Enemy combatants
+  
+  // Combat events
+  repeated CombatEventProto combat_events = 6; // Combat events to narrate
+  CombatOutcomeProto combat_outcome = 7;  // Combat result
+  
+  // Environment context
+  string combat_location = 8;             // Where combat took place
+  repeated string environmental_factors = 9; // Environmental conditions
+  string atmosphere_description = 10;     // Combat atmosphere
+  
+  // Narrative elements
+  repeated string dramatic_moments = 11;  // Key dramatic moments
+  repeated string tactical_descriptions = 12; // Tactical elements to highlight
+  string combat_pacing = 13;              // Pacing of combat narrative
+  
+  // Statistics
+  uint32 combat_duration_seconds = 14;    // Duration of combat
+  float combat_intensity_score = 15;      // Intensity score (0.0-1.0)
+  
+  int64 generated_timestamp = 16;         // Context generation timestamp
+}
+
+message NarrativeRequestProto {
+  string request_id = 1;                  // Unique request identifier
+  string player_id = 2;                   // Player UUID
+  NarrativeTypeProto narrative_type = 3;  // Type of narrative requested
+  string context_reference = 4;           // Reference to context data
+  
+  // Request parameters
+  uint32 max_length_words = 5;            // Maximum narrative length
+  NarrativeToneProto desired_tone = 6;    // Desired narrative tone
+  NarrativeStyleProto narrative_style = 7; // Narrative style preference
+  repeated string focus_elements = 8;     // Elements to focus on
+  repeated string avoid_elements = 9;     // Elements to avoid
+  
+  // Personalization
+  bool use_player_name = 10;              // Include player's name
+  bool use_robot_name = 11;               // Include robot's name
+  string perspective = 12;                // Narrative perspective (1st, 2nd, 3rd person)
+  
+  // Technical parameters
+  float creativity_level = 13;            // Creativity level (0.0-1.0)
+  float consistency_weight = 14;          // Consistency with previous narratives
+  bool enable_dynamic_elements = 15;      // Enable dynamic content insertion
+  
+  int64 requested_timestamp = 16;         // When request was made
+}
+
+message NarrativeGenerationParamsProto {
+  // NAR engine parameters
+  float temperature = 1;                  // Sampling temperature (0.0-2.0)
+  uint32 max_tokens = 2;                  // Maximum tokens to generate
+  float top_p = 3;                        // Nucleus sampling parameter
+  uint32 top_k = 4;                       // Top-k sampling parameter
+  float repetition_penalty = 5;           // Repetition penalty
+  
+  // Content filtering
+  bool enable_content_filter = 6;         // Enable content safety filter
+  bool enable_profanity_filter = 7;       // Enable profanity filter
+  repeated string custom_stop_sequences = 8; // Custom stop sequences
+  
+  // Quality controls
+  float min_coherence_score = 9;          // Minimum coherence score
+  float max_repetition_rate = 10;         // Maximum repetition rate
+  bool enable_fact_checking = 11;         // Enable lore fact checking
+  
+  // Performance parameters
+  uint32 timeout_seconds = 12;            // Generation timeout
+  bool use_caching = 13;                  // Enable response caching
+}
+
+message GeneratedNarrativeProto {
+  string narrative_id = 1;                // Unique narrative identifier
+  string player_id = 2;                   // Player UUID
+  string request_id = 3;                  // Original request ID
+  
+  // Generated content
+  string narrative_text = 4;              // Generated narrative text
+  NarrativeTypeProto narrative_type = 5;  // Type of narrative
+  string context_summary = 6;             // Summary of context used
+  
+  // Generation metadata
+  uint32 token_count = 7;                 // Token count of generated text
+  float generation_time_seconds = 8;      // Time taken for generation
+  float quality_score = 9;                // Estimated quality score
+  float relevance_score = 10;             // Relevance to context score
+  
+  // Player interaction
+  optional float player_rating = 11;      // Player rating (1.0-5.0)
+  repeated NarrativeInteractionProto interactions = 12; // Player interactions
+  bool is_favorited = 13;                 // Whether player favorited
+  
+  // Technical details
+  string generation_model = 14;           // Model used for generation
+  map<string, string> generation_params = 15; // Parameters used
+  bool was_cached = 16;                   // Whether response was cached
+  
+  int64 generated_timestamp = 17;         // Generation timestamp
+  int64 last_accessed_timestamp = 18;     // Last access timestamp
+}
+
+// Supporting data structures
+message PlayerContextProto {
+  string player_id = 1;                   // Player UUID
+  string bunker_tag = 2;                  // Player's username
+  uint32 player_level = 3;                // Current player level
+  uint64 total_xp = 4;                    // Total XP earned
+  uint32 hours_played = 5;                // Total hours played
+  
+  // Recent activity
+  repeated string recent_achievements = 6; // Recent achievements
+  repeated string recent_missions = 7;    // Recently completed missions
+  string last_activity = 8;               // Last activity description
+  
+  // Preferences and personality
+  PlaystyleProfileProto playstyle = 9;    // Playstyle analysis
+  NarrativePreferencesProto narrative_prefs = 10; // Narrative preferences
+}
+
+message RobotContextProto {
+  string robot_id = 1;                    // Robot NFT ID
+  string robot_name = 2;                  // Custom robot name
+  string robot_class = 3;                 // Current robot class
+  string robot_affiliation = 4;           // Robot affiliation
+  uint32 robot_level = 5;                 // Robot level
+  
+  // Robot capabilities
+  bunkerverse.core.v1.CoreStatsProto stats = 6; // Robot stats
+  repeated string equipped_items = 7;     // Equipped items
+  repeated string special_abilities = 8;  // Special abilities
+  
+  // Robot personality (if customized)
+  optional string robot_personality = 9; // Robot personality traits
+  repeated string robot_quirks = 10;      // Robot behavioral quirks
+}
+
+message MissionContextProto {
+  string mission_id = 1;                  // Mission identifier
+  string mission_title = 2;               // Mission title
+  string mission_type = 3;                // Mission type
+  string completion_status = 4;           // Completion status
+  
+  // Mission details
+  repeated string objectives = 5;         // Mission objectives
+  string difficulty_level = 6;            // Difficulty assessment
+  repeated string rewards = 7;            // Mission rewards
+  
+  // Player performance
+  optional float completion_time_hours = 8; // Time taken to complete
+  optional uint32 attempts_count = 9;     // Number of attempts
+  optional string performance_rating = 10; // Performance assessment
+}
+
+message InventoryContextProto {
+  string item_id = 1;                     // Item NFT ID
+  string item_name = 2;                   // Item name
+  string item_type = 3;                   // Item type
+  string item_rarity = 4;                 // Item rarity
+  
+  // Item significance
+  bool is_equipped = 5;                   // Currently equipped
+  bool is_favorite = 6;                   // Player favorited
+  string acquisition_method = 7;          // How item was acquired
+  int64 acquisition_timestamp = 8;        // When item was acquired
+  
+  // Item impact
+  bunkerverse.core.v1.CoreStatsProto stat_bonuses = 9; // Stat bonuses provided
+  repeated string special_properties = 10; // Special properties
+}
+
+message GameProgressContextProto {
+  uint32 completion_percentage = 1;       // Overall game completion
+  uint32 main_story_progress = 2;         // Main story progress
+  uint32 side_missions_completed = 3;     // Side missions completed
+  uint32 areas_explored = 4;              // Areas explored
+  
+  // Progress milestones
+  repeated string major_milestones = 5;   // Major milestones reached
+  repeated string unlocked_features = 6;  // Features unlocked
+  string current_focus_area = 7;          // Player's current focus
+  
+  // Achievement progress
+  uint32 achievements_earned = 8;         // Total achievements
+  repeated string rare_achievements = 9;  // Rare achievements earned
+  string next_achievement_goal = 10;      // Next achievement target
+}
+
+message LoreEntryProto {
+  string lore_id = 1;                     // Unique lore identifier
+  string lore_category = 2;               // Lore category
+  string lore_title = 3;                  // Lore entry title
+  string lore_content = 4;                // Lore content text
+  
+  // Lore metadata
+  uint32 lore_importance = 5;             // Importance level (1-10)
+  repeated string related_lore_ids = 6;   // Related lore entries
+  repeated string relevant_missions = 7;  // Relevant missions
+  repeated string relevant_characters = 8; // Relevant characters
+  
+  // Player progress
+  bool is_unlocked = 9;                   // Whether player has unlocked
+  string unlock_trigger = 10;             // What unlocked this lore
+  int64 unlock_timestamp = 11;            // When lore was unlocked
+}
+
+message WorldStateContextProto {
+  string current_season = 1;              // Current game season/event
+  repeated string active_events = 2;      // Active world events
+  string world_mood = 3;                  // Overall world atmosphere
+  repeated string recent_world_changes = 4; // Recent changes to world state
+  
+  // Economic context
+  float ntc_economy_state = 5;            // NTC economy health
+  repeated string trending_items = 6;     // Trending marketplace items
+  string market_sentiment = 7;            // Market sentiment
+  
+  // Community context
+  repeated string popular_activities = 8; // Popular player activities
+  repeated string community_achievements = 9; // Community-wide achievements
+  string social_trends = 10;              // Current social trends
+}
+
+message PlayerPersonalityProto {
+  // Personality traits (0.0-1.0 scales)
+  float exploration_preference = 1;       // Preference for exploration
+  float competition_level = 2;            // Competitiveness level
+  float social_engagement = 3;            // Social interaction preference
+  float risk_tolerance = 4;               // Risk-taking preference
+  float creativity_score = 5;             // Creative problem-solving
+  
+  // Behavioral patterns
+  repeated string favorite_activities = 6; // Most enjoyed activities
+  string preferred_playtime = 7;          // Preferred time to play
+  string decision_making_style = 8;       // How player makes decisions
+  repeated string motivation_factors = 9; // What motivates the player
+  
+  // Narrative preferences
+  repeated string preferred_themes = 10;  // Preferred narrative themes
+  string preferred_complexity = 11;       // Preferred narrative complexity
+  bool likes_humor = 12;                  // Enjoys humorous content
+  bool likes_drama = 13;                  // Enjoys dramatic content
+}
+
+message PlaystyleProfileProto {
+  string primary_playstyle = 1;           // Primary playstyle category
+  repeated string secondary_playstyles = 2; // Secondary playstyles
+  
+  // Playstyle metrics
+  float combat_focus = 3;                 // Focus on combat activities
+  float exploration_focus = 4;            // Focus on exploration
+  float social_focus = 5;                 // Focus on social features
+  float collection_focus = 6;             // Focus on collecting/trading
+  
+  // Behavioral indicators
+  float session_length_hours = 7;         // Average session length
+  uint32 sessions_per_week = 8;           // Sessions per week
+  string preferred_difficulty = 9;        // Preferred difficulty level
+  bool prefers_solo_play = 10;            // Prefers solo vs group play
+}
+
+message NarrativePreferencesProto {
+  // Content preferences
+  repeated NarrativeToneProto preferred_tones = 1; // Preferred narrative tones
+  repeated NarrativeStyleProto preferred_styles = 2; // Preferred narrative styles
+  repeated string preferred_themes = 3;   // Preferred themes
+  repeated string avoided_themes = 4;     // Themes to avoid
+  
+  // Format preferences
+  uint32 preferred_length_words = 5;      // Preferred narrative length
+  string preferred_perspective = 6;       // Preferred perspective (1st/2nd/3rd person)
+  bool include_dialogue = 7;              // Include character dialogue
+  bool include_action_sequences = 8;      // Include action descriptions
+  
+  // Personalization preferences
+  bool use_player_name = 9;               // Use player's name in narratives
+  bool use_robot_name = 10;               // Use robot's name in narratives
+  float immersion_level = 11;             // Desired immersion level (0.0-1.0)
+  bool reference_past_events = 12;        // Reference past player events
+  
+  // Content filtering
+  bool filter_mature_content = 13;        // Filter mature themes
+  bool filter_violence = 14;              // Filter violent content
+  repeated string content_warnings = 15;  // Content warnings to respect
+  
+  int64 last_updated = 16;                // When preferences were last updated
+}
+
+// Analytics and interaction structures
+message NarrativeInteractionProto {
+  string interaction_id = 1;              // Unique interaction identifier
+  string narrative_id = 2;                // Narrative that was interacted with
+  NarrativeInteractionTypeProto interaction_type = 3; // Type of interaction
+  
+  // Interaction details
+  float interaction_rating = 4;           // Player rating (1.0-5.0)
+  string feedback_text = 5;               // Player feedback text
+  int64 interaction_timestamp = 6;        // When interaction occurred
+  uint32 time_spent_reading = 7;          // Time spent reading (seconds)
+  
+  // Context of interaction
+  string player_state_when_interacted = 8; // Player state during interaction
+  string device_type = 9;                 // Device used for interaction
+  map<string, string> interaction_metadata = 10; // Additional metadata
+}
+
+message NarrativeAnalyticsProto {
+  string player_id = 1;                   // Player UUID
+  string analytics_period = 2;            // Time period for analytics
+  
+  // Generation statistics
+  uint32 total_narratives_generated = 3;  // Total narratives generated
+  uint32 narratives_read_completely = 4;  // Narratives read to completion
+  float average_rating = 5;               // Average player rating
+  uint32 narratives_favorited = 6;        // Number of narratives favorited
+  
+  // Content analysis
+  map<string, uint32> theme_popularity = 7; // Popularity by theme
+  map<string, float> tone_ratings = 8;    // Average ratings by tone
+  repeated string most_engaging_elements = 9; // Most engaging narrative elements
+  repeated string least_engaging_elements = 10; // Least engaging elements
+  
+  // Behavioral patterns
+  float average_reading_time_seconds = 11; // Average reading time
+  string preferred_narrative_length = 12; // Preferred length category
+  repeated string peak_engagement_times = 13; // Times of peak engagement
+  
+  // Quality metrics
+  float narrative_coherence_score = 14;   // Average coherence score
+  float narrative_relevance_score = 15;   // Average relevance score
+  uint32 generation_failures = 16;        // Number of generation failures
+  
+  int64 analytics_generated_timestamp = 17; // When analytics were generated
+}
+
+message NarrativeHistoryStatsProto {
+  uint32 total_narratives = 1;            // Total narratives in history
+  float overall_satisfaction_rating = 2;  // Overall satisfaction rating
+  uint32 narratives_this_week = 3;        // Narratives generated this week
+  uint32 narratives_this_month = 4;       // Narratives generated this month
+  
+  string most_common_theme = 5;           // Most requested theme
+  string highest_rated_type = 6;          // Highest rated narrative type
+  uint32 total_words_generated = 7;       // Total words generated
+  float average_generation_time = 8;      // Average generation time
+}
+
+message ContextOptimizationProto {
+  string optimization_id = 1;             // Unique optimization identifier
+  string player_id = 2;                   // Player UUID
+  
+  // Optimization results
+  repeated string recommended_adjustments = 3; // Recommended context adjustments
+  float estimated_improvement = 4;        // Estimated improvement (0.0-1.0)
+  repeated string focus_areas = 5;        // Areas to focus context on
+  repeated string reduce_areas = 6;       // Areas to reduce in context
+  
+  // Learning insights
+  repeated string player_preferences_learned = 7; // New preferences learned
+  repeated string content_patterns = 8;   // Effective content patterns
+  float confidence_score = 9;             // Confidence in optimization
+  
+  int64 optimization_timestamp = 10;      // When optimization was performed
+}
+
+message LoreDatabaseProto {
+  string database_version = 1;            // Lore database version
+  repeated LoreEntryProto lore_entries = 2; // Lore entries
+  map<string, repeated string> lore_categories = 3; // Lore organized by category
+  repeated string recently_updated_entries = 4; // Recently updated lore
+  
+  // Player-specific data
+  uint32 player_lore_progress_level = 5;  // Player's lore progression
+  repeated string unlocked_entries = 6;   // Lore entries player has unlocked
+  repeated string spoiler_entries = 7;    // Entries that contain spoilers
+}
+
+message PlayerLoreProgressProto {
+  string player_id = 1;                   // Player UUID
+  uint32 lore_progress_level = 2;         // Overall lore progression level
+  repeated string unlocked_lore_ids = 3;  // All unlocked lore entries
+  repeated LoreUnlockProto recent_unlocks = 4; // Recently unlocked lore
+  
+  // Progress statistics
+  uint32 total_lore_entries = 5;          // Total lore entries available
+  uint32 unlocked_entries_count = 6;      // Number of entries unlocked
+  float completion_percentage = 7;        // Lore completion percentage
+  
+  // Categories progress
+  map<string, uint32> category_progress = 8; // Progress by lore category
+  repeated string completed_categories = 9; // Fully completed categories
+}
+
+message LoreUnlockProto {
+  string lore_id = 1;                     // Unlocked lore entry ID
+  string unlock_trigger = 2;              // What triggered the unlock
+  int64 unlock_timestamp = 3;             // When lore was unlocked
+  bool is_major_revelation = 4;           // Whether this is a major lore revelation
+}
+
+message NarrativeTemplateProto {
+  string template_id = 1;                 // Unique template identifier
+  string template_name = 2;               // Template name
+  NarrativeContextTypeProto context_type = 3; // Applicable context type
+  
+  // Template content
+  string template_structure = 4;          // Template structure/format
+  repeated string required_variables = 5; // Required template variables
+  repeated string optional_variables = 6; // Optional template variables
+  string example_usage = 7;               // Example of template usage
+  
+  // Template metadata
+  float effectiveness_score = 8;          // Template effectiveness score
+  uint32 usage_count = 9;                 // How often template is used
+  repeated string compatible_tones = 10;  // Compatible narrative tones
+}
+
+// Combat-related structures
+message CombatParticipantProto {
+  string participant_id = 1;              // Participant identifier
+  string participant_name = 2;            // Participant name
+  string participant_type = 3;            // "player", "enemy", "ally"
+  
+  // Combat stats
+  bunkerverse.core.v1.CoreStatsProto combat_stats = 4; // Combat statistics
+  uint32 health_points = 5;               // Current health points
+  uint32 max_health_points = 6;           // Maximum health points
+  
+  // Equipment and abilities
+  repeated string equipped_weapons = 7;   // Equipped weapons
+  repeated string active_abilities = 8;   // Active abilities
+  string combat_style = 9;                // Combat style description
+}
+
+message CombatEventProto {
+  string event_id = 1;                    // Unique event identifier
+  string event_type = 2;                  // Type of combat event
+  string actor_id = 3;                    // Who performed the action
+  string target_id = 4;                   // Target of the action
+  
+  // Event details
+  string action_description = 5;          // Description of action
+  uint32 damage_dealt = 6;                // Damage dealt (if applicable)
+  string special_effects = 7;             // Special effects of action
+  bool was_critical_hit = 8;              // Whether action was critical
+  
+  // Event impact
+  string narrative_impact = 9;            // Narrative significance
+  float drama_level = 10;                 // Drama level of event (0.0-1.0)
+  int64 event_timestamp = 11;             // When event occurred
+}
+
+message CombatOutcomeProto {
+  string outcome_type = 1;                // "victory", "defeat", "draw"
+  repeated string survivors = 2;          // Surviving participants
+  repeated string casualties = 3;         // Defeated participants
+  
+  // Outcome details
+  uint32 combat_duration_seconds = 4;     // Total combat duration
+  string victory_condition = 5;           // How combat was won/lost
+  repeated string key_moments = 6;        // Key moments in combat
+  
+  // Rewards and consequences
+  repeated string rewards_earned = 7;     // Rewards from combat
+  repeated string penalties_incurred = 8; // Penalties from combat
+  string narrative_conclusion = 9;        // Narrative conclusion
+}
+
+message CharacterContextProto {
+  string character_id = 1;                // Character identifier
+  string character_name = 2;              // Character name
+  string character_role = 3;              // Role in story/game
+  
+  // Character details
+  string character_description = 4;       // Physical/personality description
+  repeated string character_traits = 5;   // Key character traits
+  string relationship_to_player = 6;      // Relationship with player
+  
+  // Character history
+  repeated string notable_interactions = 7; // Notable interactions with player
+  string character_arc = 8;               // Character development arc
+  bool is_major_character = 9;            // Whether character is major
+}
+
+message EventContextProto {
+  string event_id = 1;                    // Event identifier
+  string event_name = 2;                  // Event name
+  string event_type = 3;                  // Type of event
+  
+  // Event details
+  string event_description = 4;           // Event description
+  repeated string event_participants = 5; // Event participants
+  string event_outcome = 6;               // Event outcome
+  
+  // Event significance
+  float narrative_importance = 7;         // Narrative importance (0.0-1.0)
+  repeated string consequences = 8;       // Event consequences
+  int64 event_timestamp = 9;              // When event occurred
+}
+
+// Filter structures
+message NarrativeHistoryFiltersProto {
+  repeated NarrativeTypeProto narrative_types = 1; // Filter by narrative type
+  repeated NarrativeToneProto tones = 2;  // Filter by tone
+  float min_rating = 3;                   // Minimum player rating
+  int64 start_timestamp = 4;              // Date range start
+  int64 end_timestamp = 5;                // Date range end
+  bool only_favorited = 6;                // Only favorited narratives
+}
+
+// Enums
+enum NarrativeContextTypeProto {
+  NARRATIVE_CONTEXT_TYPE_UNSPECIFIED = 0;
+  MISSION_BRIEFING = 1;                   // Mission briefing context
+  COMBAT_NARRATIVE = 2;                   // Combat narrative context
+  EXPLORATION_DISCOVERY = 3;              // Exploration/discovery context
+  CHARACTER_INTERACTION = 4;              // Character interaction context
+  ACHIEVEMENT_CELEBRATION = 5;            // Achievement celebration context
+  WORLD_EVENT = 6;                        // World event context
+  PERSONAL_REFLECTION = 7;                // Personal reflection context
+  LORE_REVELATION = 8;                    // Lore revelation context
+}
+
+enum NarrativeToneProto {
+  NARRATIVE_TONE_UNSPECIFIED = 0;
+  HEROIC = 1;                             // Heroic/inspiring tone
+  MYSTERIOUS = 2;                         // Mysterious/suspenseful tone
+  HUMOROUS = 3;                           // Light/humorous tone
+  DRAMATIC = 4;                           // Dramatic/intense tone
+  CONTEMPLATIVE = 5;                      // Thoughtful/reflective tone
+  ADVENTUROUS = 6;                        // Exciting/adventurous tone
+  MELANCHOLIC = 7;                        // Sad/melancholic tone
+  TRIUMPHANT = 8;                         // Victorious/celebratory tone
+}
+
+enum NarrativeTypeProto {
+  NARRATIVE_TYPE_UNSPECIFIED = 0;
+  MISSION_BRIEFING = 1;                   // Mission briefing narrative
+  COMBAT_SUMMARY = 2;                     // Combat aftermath narrative
+  ACHIEVEMENT_STORY = 3;                  // Achievement celebration story
+  EXPLORATION_LOG = 4;                    // Exploration discovery log
+  CHARACTER_DIALOGUE = 5;                 // Character interaction dialogue
+  WORLD_BUILDING = 6;                     // World building narrative
+  PERSONAL_JOURNAL = 7;                   // Personal journal entry
+  LORE_EXPOSITION = 8;                    // Lore exposition narrative
+}
+
+enum NarrativeStyleProto {
+  NARRATIVE_STYLE_UNSPECIFIED = 0;
+  DOCUMENTARY = 1;                        // Documentary/factual style
+  LITERARY = 2;                           // Literary/poetic style
+  CONVERSATIONAL = 3;                     // Conversational/casual style
+  TECHNICAL = 4;                          // Technical/detailed style
+  CINEMATIC = 5;                          // Cinematic/visual style
+  JOURNAL = 6;                            // Personal journal style
+  REPORT = 7;                             // Official report style
+  STORY = 8;                              // Traditional story style
+}
+
+enum NarrativeInteractionTypeProto {
+  NARRATIVE_INTERACTION_TYPE_UNSPECIFIED = 0;
+  READ_COMPLETE = 1;                      // Read narrative completely
+  RATED = 2;                              // Provided rating
+  FAVORITED = 3;                          // Added to favorites
+  SHARED = 4;                             // Shared with others
+  FEEDBACK_PROVIDED = 5;                  // Provided text feedback
+  SKIPPED = 6;                            // Skipped/dismissed narrative
+  RE_READ = 7;                            // Read narrative again
+}
+
+// Health check message
+message HealthRequest {
+  string trace_id = 1;
+}
+
+message HealthResponse {
+  string status = 1;
+  string version = 2;
+  int64 timestamp = 3;
+  map<string, string> details = 4;
+}

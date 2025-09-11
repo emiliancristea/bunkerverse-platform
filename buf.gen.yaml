@@ -1,0 +1,33 @@
+version: v2
+managed:
+  enabled: true
+  disable:
+    - file_option: java_package
+    - file_option: java_outer_classname
+plugins:
+  # Rust code generation
+  - remote: buf.build/protocolbuffers/rust
+    out: libs/common-rust/src/generated
+    opt:
+      - bytes=.
+      - serde_derive
+  # TypeScript code generation
+  - remote: buf.build/bufbuild/es
+    out: services/web-client/src/generated
+    opt:
+      - target=ts
+      - import_extension=.ts
+  # gRPC-Web TypeScript generation
+  - remote: buf.build/grpc/web
+    out: services/web-client/src/generated
+    opt:
+      - import_style=typescript
+      - mode=grpcweb
+  # C++ code generation for Qt client
+  - remote: buf.build/protocolbuffers/cpp
+    out: services/cxx-qt-client/src/generated
+  # Go code generation for tooling
+  - remote: buf.build/protocolbuffers/go
+    out: tools/proto-gen/generated
+    opt:
+      - paths=source_relative

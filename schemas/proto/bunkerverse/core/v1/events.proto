@@ -1,0 +1,146 @@
+syntax = "proto3";
+
+package bunkerverse.core.v1;
+
+import "bunkerverse/core/v1/enums.proto";
+import "bunkerverse/core/v1/types.proto";
+
+// L3 Smart Contract Event Payloads
+// All events emitted by the L3 chain contracts for indexing
+
+message UserRegisteredPayloadProto {
+  string player_id = 1;                     // UUID of the registered player
+  string l3_wallet_address = 2;             // Player's L3 wallet address
+  string bunker_tag = 3;                    // Player's chosen bunker tag (username)
+  int64 registration_timestamp = 4;         // Unix timestamp
+  string registration_tx_hash = 5;          // Transaction hash
+  uint32 schema_version = 6;               // Event schema version
+}
+
+message NftMintedPayloadProto {
+  NftDetailsProto nft_details = 1;         // Full NFT details
+  string minted_to_player_id = 2;          // Recipient player UUID
+  string mint_transaction_hash = 3;        // Minting transaction hash
+  string mint_reason = 4;                  // "mission_reward", "purchase", "admin_mint"
+  int64 mint_timestamp = 5;                // Unix timestamp
+  uint32 schema_version = 6;               // Event schema version
+}
+
+message ItemEquippedPayloadProto {
+  string player_id = 1;                    // Player who equipped the item
+  string robot_id = 2;                     // Robot NFT ID receiving the equipment
+  string item_nft_id = 3;                  // Item NFT ID being equipped
+  string equipment_slot = 4;               // "head", "torso", "gear", "accessory"
+  string previous_item_nft_id = 5;         // Previously equipped item (if any)
+  CoreStatsProto new_total_stats = 6;      // Robot's stats after equipment change
+  int64 equipped_timestamp = 7;            // Unix timestamp
+  uint32 schema_version = 8;               // Event schema version
+}
+
+message RobotStatsUpdatedPayloadProto {
+  string player_id = 1;                    // Robot owner
+  string robot_id = 2;                     // Robot NFT ID
+  uint32 old_level = 3;                    // Previous level
+  uint32 new_level = 4;                    // New level
+  uint64 xp_gained = 5;                    // XP gained in this update
+  uint64 total_xp = 6;                     // Total XP after update
+  CoreStatsProto updated_base_stats = 7;   // Base stats after level up
+  CoreStatsProto updated_final_stats = 8;  // Final stats with equipment
+  string update_reason = 9;                // "mission_completion", "combat_victory"
+  int64 update_timestamp = 10;             // Unix timestamp
+  uint32 schema_version = 11;              // Event schema version
+}
+
+message NtcStakingInitiatedPayloadProto {
+  string player_id = 1;                    // Player initiating staking
+  uint64 staked_amount_wei = 2;            // Amount staked in NTC wei
+  uint32 staking_duration_days = 3;        // Staking period in days
+  uint32 expected_apy_basis_points = 4;    // Expected APY in basis points
+  int64 stake_start_timestamp = 5;         // Unix timestamp
+  int64 stake_end_timestamp = 6;           // Expected end timestamp
+  string staking_tx_hash = 7;              // Transaction hash
+  uint32 schema_version = 8;               // Event schema version
+}
+
+message NftMarketListedPayloadProto {
+  string seller_player_id = 1;             // Player listing the NFT
+  string nft_id = 2;                       // NFT being listed
+  uint64 listing_price_wei = 3;            // Price in NTC wei
+  MarketStatusProto listing_type = 4;      // LISTED_FOR_SALE or LISTED_FOR_AUCTION
+  int64 listing_expiry_timestamp = 5;      // When listing expires
+  int64 listing_timestamp = 6;             // Unix timestamp
+  string listing_tx_hash = 7;              // Transaction hash
+  uint32 schema_version = 8;               // Event schema version
+}
+
+message NftMarketSoldPayloadProto {
+  string seller_player_id = 1;             // Original seller
+  string buyer_player_id = 2;              // Purchaser
+  string nft_id = 3;                       // NFT sold
+  uint64 sale_price_wei = 4;               // Final sale price in NTC wei
+  uint64 marketplace_fee_wei = 5;          // Platform fee taken
+  uint64 seller_proceeds_wei = 6;          // Amount seller received
+  int64 sale_timestamp = 7;                // Unix timestamp
+  string sale_tx_hash = 8;                 // Transaction hash
+  uint32 schema_version = 9;               // Event schema version
+}
+
+message MissionCompletedPayloadProto {
+  string player_id = 1;                    // Player completing mission
+  string mission_id = 2;                   // Mission identifier
+  string mission_type = 3;                 // "daily", "weekly", "story", "achievement"
+  uint64 xp_reward = 4;                    // XP awarded
+  uint64 ntc_reward_wei = 5;               // NTC reward in wei (if any)
+  repeated string nft_rewards = 6;         // NFT IDs awarded (if any)
+  int64 completion_timestamp = 7;          // Unix timestamp
+  string completion_tx_hash = 8;           // Transaction hash
+  uint32 schema_version = 9;               // Event schema version
+}
+
+message XpAwardedPayloadProto {
+  string player_id = 1;                    // Player receiving XP
+  string robot_id = 2;                     // Robot receiving XP (optional)
+  uint64 xp_amount = 3;                    // XP awarded
+  string xp_source = 4;                    // "mission", "combat", "daily_bonus"
+  uint64 player_total_xp = 5;              // Player's total XP after award
+  uint64 robot_total_xp = 6;               // Robot's total XP after award (if applicable)
+  int64 award_timestamp = 7;               // Unix timestamp
+  string award_tx_hash = 8;                // Transaction hash
+  uint32 schema_version = 9;               // Event schema version
+}
+
+message NtcTransferPayloadProto {
+  string from_player_id = 1;               // Sender (empty for mint)
+  string to_player_id = 2;                 // Recipient (empty for burn)
+  uint64 amount_wei = 3;                   // Amount transferred in wei
+  string transfer_type = 4;                // "transfer", "mint", "burn", "staking_reward"
+  string transaction_hash = 5;             // L3 transaction hash
+  int64 transfer_timestamp = 6;            // Unix timestamp
+  uint32 schema_version = 7;               // Event schema version
+}
+
+// Canonical event wrapper for all L3 contract events
+message CanonicalEventProto {
+  string event_id = 1;                     // Unique event identifier (UUID)
+  uint64 block_number = 2;                 // L3 block number
+  uint64 log_index = 3;                    // Log index within block
+  string contract_address = 4;             // Contract that emitted the event
+  string transaction_hash = 5;             // Transaction hash
+  int64 block_timestamp = 6;               // Block timestamp
+  
+  // Event payload (oneof for type safety)
+  oneof payload {
+    UserRegisteredPayloadProto user_registered = 10;
+    NftMintedPayloadProto nft_minted = 11;
+    ItemEquippedPayloadProto item_equipped = 12;
+    RobotStatsUpdatedPayloadProto robot_stats_updated = 13;
+    NtcStakingInitiatedPayloadProto ntc_staking_initiated = 14;
+    NftMarketListedPayloadProto nft_market_listed = 15;
+    NftMarketSoldPayloadProto nft_market_sold = 16;
+    MissionCompletedPayloadProto mission_completed = 17;
+    XpAwardedPayloadProto xp_awarded = 18;
+    NtcTransferPayloadProto ntc_transfer = 19;
+  }
+  
+  uint32 schema_version = 20;              // Event schema version
+}

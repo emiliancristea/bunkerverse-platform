@@ -1,0 +1,212 @@
+syntax = "proto3";
+
+package bunkerverse.services.v1;
+
+import "bunkerverse/core/v1/types.proto";
+import "bunkerverse/core/v1/enums.proto";
+
+// Identity Service - Authentication and Authorization
+service IdentityService {
+  // zkLogin authentication flow
+  rpc InitiateZkLogin(InitiateZkLoginRequest) returns (InitiateZkLoginResponse);
+  rpc CompleteZkLogin(CompleteZkLoginRequest) returns (CompleteZkLoginResponse);
+  
+  // JWT token management
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
+  rpc RevokeToken(RevokeTokenRequest) returns (RevokeTokenResponse);
+  
+  // Session management
+  rpc CreateSession(CreateSessionRequest) returns (CreateSessionResponse);
+  rpc GetSessionInfo(GetSessionInfoRequest) returns (GetSessionInfoResponse);
+  rpc EndSession(EndSessionRequest) returns (EndSessionResponse);
+  
+  // Health check
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+// zkLogin flow messages
+message InitiateZkLoginRequest {
+  string client_id = 1;                    // OAuth client identifier
+  string redirect_uri = 2;                 // OAuth redirect URI
+  repeated string scopes = 3;              // Requested OAuth scopes
+  string state = 4;                        // CSRF protection state parameter
+  string nonce = 5;                        // Random nonce for security
+  string trace_id = 6;                     // Request tracing ID
+}
+
+message InitiateZkLoginResponse {
+  oneof result {
+    InitiateZkLoginSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message InitiateZkLoginSuccess {
+  string authorization_url = 1;            // OAuth provider authorization URL
+  string pkce_verifier = 2;                // PKCE code verifier (store client-side)
+  string session_id = 3;                   // Temporary session identifier
+  int64 expires_at = 4;                    // Session expiration timestamp
+}
+
+message CompleteZkLoginRequest {
+  string authorization_code = 1;           // OAuth authorization code from callback
+  string code_verifier = 2;               // PKCE code verifier
+  string session_id = 3;                  // Session ID from initiate call
+  string state = 4;                       // State parameter verification
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message CompleteZkLoginResponse {
+  oneof result {
+    CompleteZkLoginSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message CompleteZkLoginSuccess {
+  string jwt_token = 1;                    // Signed JWT access token
+  string refresh_token = 2;                // Refresh token for token renewal
+  int64 expires_at = 3;                    // Token expiration timestamp
+  UserProfileProto user_profile = 4;      // Basic user profile information
+  bool is_new_user = 5;                    // True if this is first-time login
+}
+
+// Token management messages
+message RefreshTokenRequest {
+  string refresh_token = 1;               // Current refresh token
+  string trace_id = 2;                    // Request tracing ID
+}
+
+message RefreshTokenResponse {
+  oneof result {
+    RefreshTokenSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message RefreshTokenSuccess {
+  string jwt_token = 1;                   // New JWT access token
+  string refresh_token = 2;               // New refresh token
+  int64 expires_at = 3;                   // New token expiration timestamp
+}
+
+message ValidateTokenRequest {
+  string jwt_token = 1;                   // JWT token to validate
+  string trace_id = 2;                    // Request tracing ID
+}
+
+message ValidateTokenResponse {
+  oneof result {
+    ValidateTokenSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message ValidateTokenSuccess {
+  bool is_valid = 1;                      // Token validity status
+  string player_id = 2;                   // Player UUID from token
+  repeated string permissions = 3;         // User permissions/roles
+  int64 expires_at = 4;                   // Token expiration timestamp
+}
+
+message RevokeTokenRequest {
+  string jwt_token = 1;                   // Token to revoke
+  string trace_id = 2;                    // Request tracing ID
+}
+
+message RevokeTokenResponse {
+  oneof result {
+    RevokeTokenSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message RevokeTokenSuccess {
+  bool revoked = 1;                       // True if successfully revoked
+}
+
+// Session management messages
+message CreateSessionRequest {
+  string player_id = 1;                   // Player UUID
+  string device_id = 2;                   // Unique device identifier
+  string client_version = 3;              // Client application version
+  string ip_address = 4;                  // Client IP address
+  string user_agent = 5;                  // Client user agent
+  string trace_id = 6;                    // Request tracing ID
+}
+
+message CreateSessionResponse {
+  oneof result {
+    CreateSessionSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message CreateSessionSuccess {
+  string session_id = 1;                  // Unique session identifier
+  int64 expires_at = 2;                   // Session expiration timestamp
+  string session_token = 3;               // Session-specific token
+}
+
+message GetSessionInfoRequest {
+  string session_id = 1;                  // Session identifier
+  string trace_id = 2;                    // Request tracing ID
+}
+
+message GetSessionInfoResponse {
+  oneof result {
+    GetSessionInfoSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetSessionInfoSuccess {
+  string session_id = 1;                  // Session identifier
+  string player_id = 2;                   // Associated player UUID
+  string device_id = 3;                   // Device identifier
+  int64 created_at = 4;                   // Session creation timestamp
+  int64 last_active_at = 5;               // Last activity timestamp
+  int64 expires_at = 6;                   // Session expiration timestamp
+  bool is_active = 7;                     // Session active status
+}
+
+message EndSessionRequest {
+  string session_id = 1;                  // Session to end
+  string trace_id = 2;                    // Request tracing ID
+}
+
+message EndSessionResponse {
+  oneof result {
+    EndSessionSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message EndSessionSuccess {
+  bool ended = 1;                         // True if session ended successfully
+}
+
+// Supporting types
+message UserProfileProto {
+  string player_id = 1;                   // Player UUID
+  string bunker_tag = 2;                  // Player username
+  string email = 3;                       // Player email (from OAuth)
+  string display_name = 4;                // Display name
+  string avatar_url = 5;                  // Profile picture URL
+  repeated string roles = 6;              // User roles/permissions
+  int64 created_at = 7;                   // Account creation timestamp
+  int64 last_login_at = 8;                // Last login timestamp
+}
+
+// Health check messages
+message HealthRequest {
+  string trace_id = 1;                    // Request tracing ID
+}
+
+message HealthResponse {
+  string status = 1;                      // "healthy", "degraded", "unhealthy"
+  string version = 2;                     // Service version
+  int64 timestamp = 3;                    // Current timestamp
+  map<string, string> details = 4;       // Additional health details
+}

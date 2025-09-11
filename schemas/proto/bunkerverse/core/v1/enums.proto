@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package bunkerverse.core.v1;
+
+// Core game mechanics enums as defined in BUNKERVERSE Platform Overview V2.4
+
+enum BunkerClassProto {
+  BUNKER_CLASS_UNSPECIFIED = 0;
+  EXPLORER = 1;
+  PATHFINDER = 2;
+  CYBERMANCER = 3;
+  VANGUARD = 4;
+  ENFORCER = 5;
+  SCAVENGER = 6;
+  STALKER = 7;
+  DISRUPTOR = 8;
+  CODEBREAKER = 9;
+  OVERLORD = 10;
+  BREACHER = 11;
+  RECLAIMER = 12;
+}
+
+enum ClassAffiliationProto {
+  CLASS_AFFILIATION_UNSPECIFIED = 0;
+  LOYAL = 1;
+  CORRUPT = 2;
+  NEUTRAL = 3;
+}
+
+enum NexusTypeProto {
+  NEXUS_TYPE_UNSPECIFIED = 0;
+  HOME = 1;
+  COMMUNITY = 2;
+  MINI_GAMES = 3;
+  FORUM = 4;
+  MARKETPLACE = 5;
+}
+
+enum ItemRarityProto {
+  ITEM_RARITY_UNSPECIFIED = 0;
+  STANDARD = 1;
+  OPTIMIZED = 2;
+  ADVANCED = 3;
+  SUPREME = 4;
+  ECHELON = 5;
+  ETERNAL = 6;
+}
+
+enum ItemConditionProto {
+  ITEM_CONDITION_UNSPECIFIED = 0;
+  PRIME_STATE = 1;
+  NEW_STATE = 2;
+  USED_STATE = 3;
+  BROKEN_STATE = 4;
+}
+
+enum ItemTypeProto {
+  ITEM_TYPE_UNSPECIFIED = 0;
+  HEAD = 1;
+  TORSO = 2;
+  GEAR = 3;
+  ACCESSORY = 4;
+  PERK = 5;
+  BADGE = 6;
+  BUNKERGUARD_ROBOT = 7;
+  ROBOT_ITEM = 8;
+  COSMETIC_SKIN = 9;
+}
+
+enum StatCategoryProto {
+  STAT_CATEGORY_UNSPECIFIED = 0;
+  COMBAT = 1;
+  MOBILITY = 2;
+  SURVIVABILITY = 3;
+  SENSORS = 4;
+}
+
+// Error codes for API responses
+enum ErrorCodeProto {
+  ERROR_CODE_UNSPECIFIED = 0;
+  UNKNOWN = 1;
+  NOT_FOUND = 2;
+  UNAUTHORIZED = 3;
+  INVALID_INPUT = 4;
+  FEATURE_DISABLED = 5; // For on-chain features in MVE
+  RATE_LIMITED = 6;
+  INTERNAL_ERROR = 7;
+  INSUFFICIENT_BALANCE = 8;
+  TRANSACTION_FAILED = 9;
+}
+
+// Transaction status for L3 chain operations
+enum TransactionStatusProto {
+  TRANSACTION_STATUS_UNSPECIFIED = 0;
+  PENDING = 1;
+  CONFIRMED = 2;
+  FAILED = 3;
+  TIMEOUT = 4;
+}
+
+// Market listing status
+enum MarketStatusProto {
+  MARKET_STATUS_UNSPECIFIED = 0;
+  NOT_LISTED = 1;
+  LISTED_FOR_SALE = 2;
+  LISTED_FOR_AUCTION = 3;
+  SOLD = 4;
+  CANCELLED = 5;
+}

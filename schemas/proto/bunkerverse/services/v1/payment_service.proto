@@ -1,0 +1,353 @@
+syntax = "proto3";
+
+package bunkerverse.services.v1;
+
+import "bunkerverse/core/v1/types.proto";
+import "bunkerverse/core/v1/enums.proto";
+
+// Payment Service - Fiat payment processing and credit management
+service PaymentService {
+  // Credit purchase operations
+  rpc InitiateCreditPurchase(InitiateCreditPurchaseRequest) returns (InitiateCreditPurchaseResponse);
+  rpc CompleteCreditPurchase(CompleteCreditPurchaseRequest) returns (CompleteCreditPurchaseResponse);
+  rpc GetPurchaseStatus(GetPurchaseStatusRequest) returns (GetPurchaseStatusResponse);
+  
+  // Credit management
+  rpc GetCreditBalance(GetCreditBalanceRequest) returns (GetCreditBalanceResponse);
+  rpc SpendCredits(SpendCreditsRequest) returns (SpendCreditsResponse);
+  rpc GetCreditHistory(GetCreditHistoryRequest) returns (GetCreditHistoryResponse);
+  
+  // Payment methods
+  rpc AddPaymentMethod(AddPaymentMethodRequest) returns (AddPaymentMethodResponse);
+  rpc RemovePaymentMethod(RemovePaymentMethodRequest) returns (RemovePaymentMethodResponse);
+  rpc GetPaymentMethods(GetPaymentMethodsRequest) returns (GetPaymentMethodsResponse);
+  
+  // Refunds and disputes
+  rpc RequestRefund(RequestRefundRequest) returns (RequestRefundResponse);
+  rpc GetRefundStatus(GetRefundStatusRequest) returns (GetRefundStatusResponse);
+  
+  // Health check
+  rpc Health(HealthRequest) returns (HealthResponse);
+}
+
+// Credit purchase messages
+message InitiateCreditPurchaseRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  uint64 credit_amount = 2;               // Credits to purchase (min 100, max 100000)
+  string payment_method_id = 3;           // Stripe payment method ID
+  string currency_code = 4;               // ISO currency code (USD, EUR, etc.)
+  string promo_code = 5;                  // Optional promotional code
+  string trace_id = 6;                    // Request tracing ID
+}
+
+message InitiateCreditPurchaseResponse {
+  oneof result {
+    InitiateCreditPurchaseSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message InitiateCreditPurchaseSuccess {
+  string purchase_id = 1;                 // Unique purchase identifier
+  string stripe_payment_intent_id = 2;    // Stripe PaymentIntent ID
+  string client_secret = 3;               // Stripe client secret for frontend
+  uint64 total_amount_cents = 4;          // Total amount in cents
+  uint64 credits_to_receive = 5;          // Credits after bonuses/promos
+  string currency_code = 6;               // Purchase currency
+  int64 expires_at = 7;                   // Payment intent expiration
+}
+
+message CompleteCreditPurchaseRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string purchase_id = 2;                 // Purchase identifier
+  string stripe_payment_intent_id = 3;    // Stripe PaymentIntent ID
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message CompleteCreditPurchaseResponse {
+  oneof result {
+    CompleteCreditPurchaseSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message CompleteCreditPurchaseSuccess {
+  string purchase_id = 1;                 // Purchase identifier
+  uint64 credits_added = 2;               // Credits added to account
+  uint64 new_credit_balance = 3;          // New total credit balance
+  string receipt_url = 4;                 // URL for receipt/invoice
+  int64 purchase_timestamp = 5;           // Purchase completion timestamp
+}
+
+message GetPurchaseStatusRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string purchase_id = 2;                 // Purchase identifier
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message GetPurchaseStatusResponse {
+  oneof result {
+    PurchaseStatusProto status = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message PurchaseStatusProto {
+  string purchase_id = 1;                 // Purchase identifier
+  PaymentStatusProto status = 2;          // Current payment status
+  uint64 credit_amount = 3;               // Credits purchased
+  uint64 total_amount_cents = 4;          // Amount paid in cents
+  string currency_code = 5;               // Purchase currency
+  int64 initiated_at = 6;                 // Purchase initiation timestamp
+  optional int64 completed_at = 7;        // Purchase completion timestamp
+  optional string failure_reason = 8;     // Failure reason if failed
+  string receipt_url = 9;                 // Receipt URL (if completed)
+}
+
+// Credit management messages
+message GetCreditBalanceRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string trace_id = 2;                    // Request tracing ID
+}
+
+message GetCreditBalanceResponse {
+  oneof result {
+    CreditBalanceProto balance = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message CreditBalanceProto {
+  uint64 available_credits = 1;           // Available credits for spending
+  uint64 pending_credits = 2;             // Credits from pending purchases
+  uint64 lifetime_credits_purchased = 3;  // Total credits ever purchased
+  uint64 lifetime_credits_spent = 4;      // Total credits ever spent
+  int64 last_purchase_timestamp = 5;      // Last credit purchase timestamp
+}
+
+message SpendCreditsRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  uint64 credit_amount = 2;               // Credits to spend
+  string spend_reason = 3;                // Reason for spending
+  string transaction_reference = 4;       // Reference to related transaction
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message SpendCreditsResponse {
+  oneof result {
+    SpendCreditsSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message SpendCreditsSuccess {
+  uint64 credits_spent = 1;               // Credits deducted
+  uint64 new_credit_balance = 2;          // New available balance
+  string spend_transaction_id = 3;        // Transaction identifier
+  int64 spend_timestamp = 4;              // Spending timestamp
+}
+
+message GetCreditHistoryRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+  CreditHistoryFiltersProto filters = 3;  // Optional filters
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message GetCreditHistoryResponse {
+  oneof result {
+    GetCreditHistorySuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetCreditHistorySuccess {
+  repeated CreditTransactionProto transactions = 1;
+  bunkerverse.core.v1.PaginationProto pagination = 2;
+}
+
+// Payment method management
+message AddPaymentMethodRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string stripe_payment_method_id = 2;    // Stripe PaymentMethod ID
+  bool set_as_default = 3;                // Set as default payment method
+  string trace_id = 4;                    // Request tracing ID
+}
+
+message AddPaymentMethodResponse {
+  oneof result {
+    AddPaymentMethodSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message AddPaymentMethodSuccess {
+  string payment_method_id = 1;           // Internal payment method ID
+  PaymentMethodProto payment_method = 2;  // Payment method details
+}
+
+message RemovePaymentMethodRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string payment_method_id = 2;           // Payment method ID to remove
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message RemovePaymentMethodResponse {
+  oneof result {
+    RemovePaymentMethodSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message RemovePaymentMethodSuccess {
+  bool removed = 1;                       // Confirmation of removal
+  string removed_payment_method_id = 2;   // ID of removed payment method
+}
+
+message GetPaymentMethodsRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string trace_id = 2;                    // Request tracing ID
+}
+
+message GetPaymentMethodsResponse {
+  oneof result {
+    GetPaymentMethodsSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message GetPaymentMethodsSuccess {
+  repeated PaymentMethodProto payment_methods = 1;
+  string default_payment_method_id = 2;   // Default payment method ID
+}
+
+// Refund management
+message RequestRefundRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string purchase_id = 2;                 // Purchase to refund
+  string refund_reason = 3;               // Reason for refund request
+  uint64 refund_amount_credits = 4;       // Credits to refund (partial allowed)
+  string trace_id = 5;                    // Request tracing ID
+}
+
+message RequestRefundResponse {
+  oneof result {
+    RequestRefundSuccess success = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+message RequestRefundSuccess {
+  string refund_request_id = 1;           // Refund request identifier
+  RefundStatusProto status = 2;           // Initial refund status
+  uint64 refund_amount_credits = 3;       // Credits to be refunded
+  uint64 refund_amount_cents = 4;         // Amount to be refunded in cents
+  int64 estimated_processing_time = 5;    // Estimated processing time
+}
+
+message GetRefundStatusRequest {
+  string player_id = 1;                   // Player UUID (from JWT)
+  string refund_request_id = 2;           // Refund request identifier
+  string trace_id = 3;                    // Request tracing ID
+}
+
+message GetRefundStatusResponse {
+  oneof result {
+    RefundStatusDetailsProto refund = 1;
+    bunkerverse.core.v1.ErrorResponseProto error = 2;
+  }
+}
+
+// Supporting data structures
+message PaymentMethodProto {
+  string payment_method_id = 1;           // Internal payment method ID
+  string stripe_payment_method_id = 2;    // Stripe PaymentMethod ID
+  PaymentMethodTypeProto type = 3;        // Payment method type
+  string last_four_digits = 4;            // Last 4 digits (for cards)
+  string brand = 5;                       // Card brand or bank name
+  int32 exp_month = 6;                    // Expiration month (for cards)
+  int32 exp_year = 7;                     // Expiration year (for cards)
+  bool is_default = 8;                    // Whether this is default method
+  int64 created_at = 9;                   // When payment method was added
+}
+
+message CreditTransactionProto {
+  string transaction_id = 1;              // Transaction identifier
+  CreditTransactionTypeProto type = 2;    // Transaction type
+  int64 credit_amount = 3;                // Credit amount (positive = earned, negative = spent)
+  string description = 4;                 // Transaction description
+  string reference_id = 5;                // Reference to related transaction
+  int64 transaction_timestamp = 6;        // Transaction timestamp
+  optional uint64 fiat_amount_cents = 7;  // Fiat amount (for purchases)
+  optional string currency_code = 8;      // Fiat currency (for purchases)
+}
+
+message RefundStatusDetailsProto {
+  string refund_request_id = 1;           // Refund request identifier
+  string purchase_id = 2;                 // Original purchase ID
+  RefundStatusProto status = 3;           // Current refund status
+  uint64 refund_amount_credits = 4;       // Credits being refunded
+  uint64 refund_amount_cents = 5;         // Fiat amount being refunded
+  string currency_code = 6;               // Refund currency
+  string refund_reason = 7;               // Reason for refund
+  int64 requested_at = 8;                 // Refund request timestamp
+  optional int64 processed_at = 9;        // Refund processing timestamp
+  optional string stripe_refund_id = 10;  // Stripe refund ID
+  optional string failure_reason = 11;    // Failure reason if denied
+}
+
+message CreditHistoryFiltersProto {
+  repeated CreditTransactionTypeProto transaction_types = 1;
+  int64 start_timestamp = 2;              // Filter by date range
+  int64 end_timestamp = 3;                // Filter by date range
+  uint64 min_amount = 4;                  // Minimum transaction amount
+  uint64 max_amount = 5;                  // Maximum transaction amount
+}
+
+// Enums
+enum PaymentStatusProto {
+  PAYMENT_STATUS_UNSPECIFIED = 0;
+  PENDING = 1;
+  PROCESSING = 2;
+  SUCCEEDED = 3;
+  FAILED = 4;
+  CANCELLED = 5;
+  REFUNDED = 6;
+}
+
+enum PaymentMethodTypeProto {
+  PAYMENT_METHOD_TYPE_UNSPECIFIED = 0;
+  CARD = 1;
+  BANK_ACCOUNT = 2;
+  DIGITAL_WALLET = 3;
+}
+
+enum CreditTransactionTypeProto {
+  CREDIT_TRANSACTION_TYPE_UNSPECIFIED = 0;
+  PURCHASE = 1;
+  SPEND = 2;
+  REFUND = 3;
+  BONUS = 4;
+  PROMOTIONAL = 5;
+}
+
+enum RefundStatusProto {
+  REFUND_STATUS_UNSPECIFIED = 0;
+  REFUND_REQUESTED = 1;
+  REFUND_PROCESSING = 2;
+  REFUND_COMPLETED = 3;
+  REFUND_DENIED = 4;
+  REFUND_FAILED = 5;
+}
+
+// Health check message
+message HealthRequest {
+  string trace_id = 1;
+}
+
+message HealthResponse {
+  string status = 1;
+  string version = 2;
+  int64 timestamp = 3;
+  map<string, string> details = 4;
+}
