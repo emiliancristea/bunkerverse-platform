@@ -1,9 +1,10 @@
 syntax = "proto3";
 
 package bunkerverse.services.v1;
+option go_package = "bunkerverse/services/v1";
 
 import "bunkerverse/core/v1/types.proto";
-import "bunkerverse/core/v1/enums.proto";
+import "bunkerverse/services/v1/health_service.proto";
 
 // Mission Service - Progress tracking and mission management
 service MissionService {
@@ -487,7 +488,7 @@ enum MissionStatusProto {
   IN_PROGRESS = 3;                        // Mission started but not completed
   COMPLETED = 4;                          // Mission completed
   EXPIRED = 5;                            // Mission expired before completion
-  FAILED = 6;                             // Mission failed (if applicable)
+  MISSION_FAILED = 6;                     // Mission failed (if applicable)
 }
 
 enum ObjectiveTypeProto {
@@ -526,13 +527,4 @@ enum RewardTypeProto {
 }
 
 // Health check message
-message HealthRequest {
-  string trace_id = 1;
-}
 
-message HealthResponse {
-  string status = 1;
-  string version = 2;
-  int64 timestamp = 3;
-  map<string, string> details = 4;
-}

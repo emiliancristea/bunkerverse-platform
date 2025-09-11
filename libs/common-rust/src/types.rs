@@ -6,7 +6,7 @@ use std::fmt;
 use std::str::FromStr;
 use uuid::Uuid;
 
-use crate::errors::{Result, ValidationError};
+use crate::errors::{BunkerVerseError, Result, ValidationError};
 use crate::validation::{validate_ethereum_address, validate_uuid_v4};
 
 // ============================================================================
@@ -26,8 +26,11 @@ impl PlayerId {
     /// Create PlayerId from validated UUID string
     pub fn from_string(id: &str) -> Result<Self> {
         validate_uuid_v4(id)?;
-        let uuid = Uuid::from_str(id)
-            .map_err(|_| ValidationError::InvalidFormat("Invalid UUID format".to_string()))?;
+        let uuid = Uuid::from_str(id).map_err(|_| {
+            BunkerVerseError::Validation(ValidationError::InvalidFormat(
+                "Invalid UUID format".to_string(),
+            ))
+        })?;
         Ok(Self(uuid))
     }
 
@@ -54,13 +57,18 @@ impl fmt::Display for PlayerId {
 }
 
 impl FromStr for PlayerId {
-    type Err = ValidationError;
+    type Err = BunkerVerseError;
 
-    fn from_str(s: &str) -> std::result::Result<Self, ValidationError> {
-        let uuid = Uuid::from_str(s)
-            .map_err(|_| ValidationError::InvalidFormat("Invalid UUID format".to_string()))?;
+    fn from_str(s: &str) -> std::result::Result<Self, BunkerVerseError> {
+        let uuid = Uuid::from_str(s).map_err(|_| {
+            BunkerVerseError::Validation(ValidationError::InvalidFormat(
+                "Invalid UUID format".to_string(),
+            ))
+        })?;
         if uuid.get_version() != Some(uuid::Version::Random) {
-            return Err(ValidationError::InvalidFormat("Must be UUID v4".to_string()));
+            return Err(BunkerVerseError::Validation(
+                ValidationError::InvalidFormat("Must be UUID v4".to_string()),
+            ));
         }
         Ok(Self(uuid))
     }
@@ -85,8 +93,11 @@ impl NftId {
     /// Create NftId from validated UUID string
     pub fn from_string(id: &str) -> Result<Self> {
         validate_uuid_v4(id)?;
-        let uuid = Uuid::from_str(id)
-            .map_err(|_| ValidationError::InvalidFormat("Invalid UUID format".to_string()))?;
+        let uuid = Uuid::from_str(id).map_err(|_| {
+            BunkerVerseError::Validation(ValidationError::InvalidFormat(
+                "Invalid UUID format".to_string(),
+            ))
+        })?;
         Ok(Self(uuid))
     }
 
@@ -113,13 +124,18 @@ impl fmt::Display for NftId {
 }
 
 impl FromStr for NftId {
-    type Err = ValidationError;
+    type Err = BunkerVerseError;
 
-    fn from_str(s: &str) -> std::result::Result<Self, ValidationError> {
-        let uuid = Uuid::from_str(s)
-            .map_err(|_| ValidationError::InvalidFormat("Invalid UUID format".to_string()))?;
+    fn from_str(s: &str) -> std::result::Result<Self, BunkerVerseError> {
+        let uuid = Uuid::from_str(s).map_err(|_| {
+            BunkerVerseError::Validation(ValidationError::InvalidFormat(
+                "Invalid UUID format".to_string(),
+            ))
+        })?;
         if uuid.get_version() != Some(uuid::Version::Random) {
-            return Err(ValidationError::InvalidFormat("Must be UUID v4".to_string()));
+            return Err(BunkerVerseError::Validation(
+                ValidationError::InvalidFormat("Must be UUID v4".to_string()),
+            ));
         }
         Ok(Self(uuid))
     }
@@ -144,8 +160,11 @@ impl MissionId {
     /// Create MissionId from validated UUID string
     pub fn from_string(id: &str) -> Result<Self> {
         validate_uuid_v4(id)?;
-        let uuid = Uuid::from_str(id)
-            .map_err(|_| ValidationError::InvalidFormat("Invalid UUID format".to_string()))?;
+        let uuid = Uuid::from_str(id).map_err(|_| {
+            BunkerVerseError::Validation(ValidationError::InvalidFormat(
+                "Invalid UUID format".to_string(),
+            ))
+        })?;
         Ok(Self(uuid))
     }
 
@@ -167,13 +186,18 @@ impl fmt::Display for MissionId {
 }
 
 impl FromStr for MissionId {
-    type Err = ValidationError;
+    type Err = BunkerVerseError;
 
-    fn from_str(s: &str) -> std::result::Result<Self, ValidationError> {
-        let uuid = Uuid::from_str(s)
-            .map_err(|_| ValidationError::InvalidFormat("Invalid UUID format".to_string()))?;
+    fn from_str(s: &str) -> std::result::Result<Self, BunkerVerseError> {
+        let uuid = Uuid::from_str(s).map_err(|_| {
+            BunkerVerseError::Validation(ValidationError::InvalidFormat(
+                "Invalid UUID format".to_string(),
+            ))
+        })?;
         if uuid.get_version() != Some(uuid::Version::Random) {
-            return Err(ValidationError::InvalidFormat("Must be UUID v4".to_string()));
+            return Err(BunkerVerseError::Validation(
+                ValidationError::InvalidFormat("Must be UUID v4".to_string()),
+            ));
         }
         Ok(Self(uuid))
     }
@@ -198,8 +222,11 @@ impl RobotId {
     /// Create RobotId from validated UUID string
     pub fn from_string(id: &str) -> Result<Self> {
         validate_uuid_v4(id)?;
-        let uuid = Uuid::from_str(id)
-            .map_err(|_| ValidationError::InvalidFormat("Invalid UUID format".to_string()))?;
+        let uuid = Uuid::from_str(id).map_err(|_| {
+            BunkerVerseError::Validation(ValidationError::InvalidFormat(
+                "Invalid UUID format".to_string(),
+            ))
+        })?;
         Ok(Self(uuid))
     }
 
@@ -221,13 +248,18 @@ impl fmt::Display for RobotId {
 }
 
 impl FromStr for RobotId {
-    type Err = ValidationError;
+    type Err = BunkerVerseError;
 
-    fn from_str(s: &str) -> std::result::Result<Self, ValidationError> {
-        let uuid = Uuid::from_str(s)
-            .map_err(|_| ValidationError::InvalidFormat("Invalid UUID format".to_string()))?;
+    fn from_str(s: &str) -> std::result::Result<Self, BunkerVerseError> {
+        let uuid = Uuid::from_str(s).map_err(|_| {
+            BunkerVerseError::Validation(ValidationError::InvalidFormat(
+                "Invalid UUID format".to_string(),
+            ))
+        })?;
         if uuid.get_version() != Some(uuid::Version::Random) {
-            return Err(ValidationError::InvalidFormat("Must be UUID v4".to_string()));
+            return Err(BunkerVerseError::Validation(
+                ValidationError::InvalidFormat("Must be UUID v4".to_string()),
+            ));
         }
         Ok(Self(uuid))
     }
@@ -293,18 +325,22 @@ impl fmt::Display for EthereumAddress {
 }
 
 impl FromStr for EthereumAddress {
-    type Err = ValidationError;
+    type Err = BunkerVerseError;
 
-    fn from_str(s: &str) -> std::result::Result<Self, ValidationError> {
+    fn from_str(s: &str) -> std::result::Result<Self, BunkerVerseError> {
         if !s.starts_with("0x") || s.len() != 42 {
-            return Err(ValidationError::InvalidFormat(
-                "Ethereum address must be 42 characters starting with 0x".to_string()
+            return Err(BunkerVerseError::Validation(
+                ValidationError::InvalidFormat(
+                    "Ethereum address must be 42 characters starting with 0x".to_string(),
+                ),
             ));
         }
         let hex_part = &s[2..];
         if !hex_part.chars().all(|c| c.is_ascii_hexdigit()) {
-            return Err(ValidationError::InvalidFormat(
-                "Ethereum address must contain only hex characters".to_string()
+            return Err(BunkerVerseError::Validation(
+                ValidationError::InvalidFormat(
+                    "Ethereum address must contain only hex characters".to_string(),
+                ),
             ));
         }
         Ok(Self(s.to_string()))
@@ -345,12 +381,12 @@ impl PlayerLevel {
     /// Create PlayerLevel with validation
     pub fn new(level: u32) -> Result<Self> {
         if level < Self::MIN || level > Self::MAX {
-            return Err(ValidationError::OutOfRange {
+            return Err(BunkerVerseError::Validation(ValidationError::OutOfRange {
                 field: "player_level".to_string(),
                 value: level.to_string(),
                 min: Some(Self::MIN.to_string()),
                 max: Some(Self::MAX.to_string()),
-            });
+            }));
         }
         Ok(Self(level))
     }
@@ -389,12 +425,12 @@ impl StatValue {
     /// Create StatValue with validation
     pub fn new(value: u32) -> Result<Self> {
         if value > Self::MAX {
-            return Err(ValidationError::OutOfRange {
+            return Err(BunkerVerseError::Validation(ValidationError::OutOfRange {
                 field: "stat_value".to_string(),
                 value: value.to_string(),
                 min: Some(Self::MIN.to_string()),
                 max: Some(Self::MAX.to_string()),
-            });
+            }));
         }
         Ok(Self(value))
     }
@@ -489,12 +525,12 @@ impl CreditAmount {
     /// Create CreditAmount from cents
     pub fn from_cents(cents: u64) -> Result<Self> {
         if cents > Self::MAX_CREDITS {
-            return Err(ValidationError::OutOfRange {
+            return Err(BunkerVerseError::Validation(ValidationError::OutOfRange {
                 field: "credit_amount".to_string(),
                 value: cents.to_string(),
                 min: Some("0".to_string()),
                 max: Some(Self::MAX_CREDITS.to_string()),
-            });
+            }));
         }
         Ok(Self(cents))
     }
@@ -544,12 +580,12 @@ impl ExperiencePoints {
     /// Create ExperiencePoints with validation
     pub fn new(xp: u64) -> Result<Self> {
         if xp > Self::MAX_XP {
-            return Err(ValidationError::OutOfRange {
+            return Err(BunkerVerseError::Validation(ValidationError::OutOfRange {
                 field: "experience_points".to_string(),
                 value: xp.to_string(),
                 min: Some("0".to_string()),
                 max: Some(Self::MAX_XP.to_string()),
-            });
+            }));
         }
         Ok(Self(xp))
     }

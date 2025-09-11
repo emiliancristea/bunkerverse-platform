@@ -1,9 +1,11 @@
 syntax = "proto3";
 
 package bunkerverse.services.v1;
+option go_package = "bunkerverse/services/v1";
 
 import "bunkerverse/core/v1/types.proto";
 import "bunkerverse/core/v1/enums.proto";
+import "bunkerverse/services/v1/health_service.proto";
 
 // Account Service - Player profiles and account management
 service AccountService {
@@ -302,13 +304,4 @@ message UpdatePlayerXpSuccess {
 }
 
 // Health check (reused from identity service)
-message HealthRequest {
-  string trace_id = 1;
-}
 
-message HealthResponse {
-  string status = 1;
-  string version = 2;
-  int64 timestamp = 3;
-  map<string, string> details = 4;
-}

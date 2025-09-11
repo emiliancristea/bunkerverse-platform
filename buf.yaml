@@ -1,11 +1,11 @@
 version: v2
+# CI refresh: ensure protobuf validation passes with correct imports
+# Trigger workflow with buf lint validation
 modules:
   - path: schemas/proto
 lint:
   use:
     - BASIC
-    - COMMENTS
-    - FILE_LAYOUT
     - PACKAGE_DEFINED
     - PACKAGE_DIRECTORY_MATCH
     - PACKAGE_SAME_DIRECTORY

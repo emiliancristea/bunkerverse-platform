@@ -19,7 +19,7 @@ pub struct Timestamp(i64);
 impl Timestamp {
     /// Minimum valid timestamp (2021-01-01 00:00:00 UTC)
     pub const MIN: i64 = 1609459200;
-    
+
     /// Maximum future offset (1 day in seconds)
     pub const MAX_FUTURE_OFFSET_SECONDS: i64 = 86400;
 
@@ -142,7 +142,7 @@ impl TryFrom<i64> for Timestamp {
                 max: Some("current time + 1 day".to_string()),
             });
         }
-        
+
         let current_time = current_unix_timestamp();
         if seconds > current_time + Self::MAX_FUTURE_OFFSET_SECONDS {
             return Err(ValidationError::OutOfRange {

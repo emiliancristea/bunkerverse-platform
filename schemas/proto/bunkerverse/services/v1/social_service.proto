@@ -1,9 +1,10 @@
 syntax = "proto3";
 
 package bunkerverse.services.v1;
+option go_package = "bunkerverse/services/v1";
 
 import "bunkerverse/core/v1/types.proto";
-import "bunkerverse/core/v1/enums.proto";
+import "bunkerverse/services/v1/health_service.proto";
 
 // Social Service - Chat, friends, and social interactions
 service SocialService {
@@ -682,7 +683,7 @@ message PlayerPublicProfileProto {
   // Privacy-controlled information
   optional bunkerverse.core.v1.ActiveBunkerguardDataProto active_bunkerguard = 10; // If inventory public
   repeated bunkerverse.core.v1.NftDetailsProto showcase_nfts = 11; // Player's showcase NFTs
-  PlayerStatsProto public_stats = 12;     // Public statistics
+  SocialPlayerStatsProto public_stats = 12; // Public statistics
   repeated string achievements = 13;       // Public achievements
   bool is_friend = 14;                    // Whether viewer is friends with this player
   bool is_blocked = 15;                   // Whether this player is blocked
@@ -853,7 +854,7 @@ message ActivityFeedFiltersProto {
 }
 
 // Statistics structures
-message PlayerStatsProto {
+message SocialPlayerStatsProto {
   uint32 friends_count = 1;               // Total friends
   uint32 posts_count = 2;                 // Total posts created
   uint32 likes_received_count = 3;        // Total likes received
@@ -865,18 +866,18 @@ message PlayerStatsProto {
 // Enums
 enum FriendRequestTypeProto {
   FRIEND_REQUEST_TYPE_UNSPECIFIED = 0;
-  SENT = 1;                               // Requests sent by player
-  RECEIVED = 2;                           // Requests received by player
-  ALL = 3;                                // All requests
+  REQUEST_SENT = 1;                       // Requests sent by player
+  REQUEST_RECEIVED = 2;                   // Requests received by player
+  REQUEST_ALL = 3;                        // All requests
 }
 
 enum FriendRequestStatusProto {
   FRIEND_REQUEST_STATUS_UNSPECIFIED = 0;
-  PENDING = 1;                            // Request pending response
+  REQUEST_PENDING = 1;                    // Request pending response
   ACCEPTED = 2;                           // Request accepted
   REJECTED = 3;                           // Request rejected
-  CANCELLED = 4;                          // Request cancelled by sender
-  EXPIRED = 5;                            // Request expired
+  REQUEST_CANCELLED = 4;                  // Request cancelled by sender
+  REQUEST_EXPIRED = 5;                    // Request expired
 }
 
 enum FriendshipStatusProto {
@@ -892,24 +893,24 @@ enum MessageTypeProto {
   IMAGE = 2;                              // Image attachment
   EMOJI = 3;                              // Emoji/reaction message
   SYSTEM = 4;                             // System-generated message
-  ACHIEVEMENT = 5;                        // Achievement sharing
+  MESSAGE_ACHIEVEMENT = 5;                // Achievement sharing
   NFT_SHARE = 6;                          // NFT sharing message
 }
 
 enum MessageStatusProto {
   MESSAGE_STATUS_UNSPECIFIED = 0;
-  SENT = 1;                               // Message sent successfully
+  MESSAGE_SENT = 1;                       // Message sent successfully
   DELIVERED = 2;                          // Message delivered to recipient
   READ = 3;                               // Message read by recipient
-  FAILED = 4;                             // Message failed to send
+  MESSAGE_FAILED = 4;                     // Message failed to send
 }
 
 enum ChatGroupTypeProto {
   CHAT_GROUP_TYPE_UNSPECIFIED = 0;
-  GENERAL = 1;                            // General purpose group
-  GUILD = 2;                              // Guild/clan group
-  EVENT = 3;                              // Event-specific group
-  TRADING = 4;                            // Trading/marketplace group
+  GROUP_GENERAL = 1;                      // General purpose group
+  GROUP_GUILD = 2;                        // Guild/clan group
+  GROUP_EVENT = 3;                        // Event-specific group
+  GROUP_TRADING = 4;                      // Trading/marketplace group
   HELP = 5;                               // Help/support group
 }
 
@@ -923,8 +924,8 @@ enum GroupRoleProto {
 
 enum PostTypeProto {
   POST_TYPE_UNSPECIFIED = 0;
-  GENERAL = 1;                            // General post
-  ACHIEVEMENT = 2;                        // Achievement sharing
+  POST_GENERAL = 1;                       // General post
+  POST_ACHIEVEMENT = 2;                   // Achievement sharing
   NFT_SHOWCASE = 3;                       // NFT showcase
   MISSION_COMPLETION = 4;                 // Mission completion sharing
   LEVEL_UP = 5;                           // Level up announcement
@@ -958,13 +959,4 @@ enum PlayerActivityStatusProto {
 }
 
 // Health check message
-message HealthRequest {
-  string trace_id = 1;
-}
 
-message HealthResponse {
-  string status = 1;
-  string version = 2;
-  int64 timestamp = 3;
-  map<string, string> details = 4;
-}

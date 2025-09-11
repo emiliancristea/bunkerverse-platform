@@ -1,9 +1,10 @@
 syntax = "proto3";
 
 package bunkerverse.services.v1;
+option go_package = "bunkerverse/services/v1";
 
 import "bunkerverse/core/v1/types.proto";
-import "bunkerverse/core/v1/enums.proto";
+import "bunkerverse/services/v1/health_service.proto";
 import "bunkerverse/core/v1/events.proto";
 
 // Indexer Service - L3 Chain Event Processing and Querying
@@ -295,13 +296,4 @@ message IndexingStatsProto {
 }
 
 // Health check message
-message HealthRequest {
-  string trace_id = 1;
-}
 
-message HealthResponse {
-  string status = 1;
-  string version = 2;
-  int64 timestamp = 3;
-  map<string, string> details = 4;
-}

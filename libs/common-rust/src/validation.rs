@@ -4,7 +4,7 @@
 use regex::Regex;
 use std::sync::OnceLock;
 
-use crate::errors::{Result, ValidationError};
+use crate::errors::{BunkerVerseError, Result, ValidationError};
 
 // ============================================================================
 // Validation Constants
@@ -62,7 +62,9 @@ fn get_username_regex() -> &'static Regex {
 /// Validate UUID v4 format
 pub fn validate_uuid_v4(uuid: &str) -> Result<()> {
     if !get_uuid_regex().is_match(uuid) {
-        return Err(ValidationError::invalid_uuid(uuid));
+        return Err(BunkerVerseError::Validation(ValidationError::InvalidUuid {
+            value: uuid.to_string(),
+        }));
     }
     Ok(())
 }
@@ -70,7 +72,11 @@ pub fn validate_uuid_v4(uuid: &str) -> Result<()> {
 /// Validate Ethereum address format
 pub fn validate_ethereum_address(address: &str) -> Result<()> {
     if !get_ethereum_regex().is_match(address) {
-        return Err(ValidationError::invalid_ethereum_address(address));
+        return Err(BunkerVerseError::Validation(
+            ValidationError::InvalidEthereumAddress {
+                address: address.to_string(),
+            },
+        ));
     }
     Ok(())
 }
@@ -78,10 +84,9 @@ pub fn validate_ethereum_address(address: &str) -> Result<()> {
 /// Validate IPFS CID format (basic QM format)
 pub fn validate_ipfs_cid(cid: &str) -> Result<()> {
     if !get_ipfs_cid_regex().is_match(cid) {
-        return Err(ValidationError::InvalidFormat(format!(
-            "Invalid IPFS CID format: {}",
-            cid
-        )));
+        return Err(BunkerVerseError::Validation(
+            ValidationError::InvalidFormat(format!("Invalid IPFS CID format: {}", cid)),
+        ));
     }
     Ok(())
 }
@@ -89,10 +94,9 @@ pub fn validate_ipfs_cid(cid: &str) -> Result<()> {
 /// Validate email format
 pub fn validate_email(email: &str) -> Result<()> {
     if !get_email_regex().is_match(email) {
-        return Err(ValidationError::InvalidFormat(format!(
-            "Invalid email format: {}",
-            email
-        )));
+        return Err(BunkerVerseError::Validation(
+            ValidationError::InvalidFormat(format!("Invalid email format: {}", email)),
+        ));
     }
     Ok(())
 }
@@ -100,9 +104,9 @@ pub fn validate_email(email: &str) -> Result<()> {
 /// Validate username/BunkerTag format
 pub fn validate_username(username: &str) -> Result<()> {
     if !get_username_regex().is_match(username) {
-        return Err(ValidationError::InvalidFormat(
+        return Err(BunkerVerseError::Validation(ValidationError::InvalidFormat(
             format!("Invalid username format: {} (must be 3-32 chars, alphanumeric, underscore, hyphen only)", username)
-        ));
+        )));
     }
     Ok(())
 }
@@ -111,12 +115,14 @@ pub fn validate_username(username: &str) -> Result<()> {
 pub fn validate_string_length(field: &str, value: &str, min: usize, max: usize) -> Result<()> {
     let length = value.len();
     if length < min || length > max {
-        return Err(ValidationError::InvalidLength {
-            field: field.to_string(),
-            actual: length,
-            min,
-            max,
-        });
+        return Err(BunkerVerseError::Validation(
+            ValidationError::InvalidLength {
+                field: field.to_string(),
+                actual: length,
+                min,
+                max,
+            },
+        ));
     }
     Ok(())
 }
@@ -127,12 +133,12 @@ where
     T: PartialOrd + std::fmt::Display + Copy,
 {
     if value < min || value > max {
-        return Err(ValidationError::OutOfRange {
+        return Err(BunkerVerseError::Validation(ValidationError::OutOfRange {
             field: field.to_string(),
             value: value.to_string(),
             min: Some(min.to_string()),
             max: Some(max.to_string()),
-        });
+        }));
     }
     Ok(())
 }
@@ -147,17 +153,21 @@ pub fn validate_timestamp(timestamp: i64) -> Result<()> {
     let max_timestamp = current_time + 86400; // Current time + 1 day
 
     if timestamp < MIN_TIMESTAMP {
-        return Err(ValidationError::InvalidTimestamp {
-            timestamp,
-            reason: "Timestamp too old (before 2021)".to_string(),
-        });
+        return Err(BunkerVerseError::Validation(
+            ValidationError::InvalidTimestamp {
+                timestamp,
+                reason: "Timestamp too old (before 2021)".to_string(),
+            },
+        ));
     }
 
     if timestamp > max_timestamp {
-        return Err(ValidationError::InvalidTimestamp {
-            timestamp,
-            reason: "Timestamp too far in future (> 1 day)".to_string(),
-        });
+        return Err(BunkerVerseError::Validation(
+            ValidationError::InvalidTimestamp {
+                timestamp,
+                reason: "Timestamp too far in future (> 1 day)".to_string(),
+            },
+        ));
     }
 
     Ok(())
@@ -166,7 +176,11 @@ pub fn validate_timestamp(timestamp: i64) -> Result<()> {
 /// Validate required field is not empty
 pub fn validate_required_string(field: &str, value: &str) -> Result<()> {
     if value.trim().is_empty() {
-        return Err(ValidationError::required_field(field));
+        return Err(BunkerVerseError::Validation(
+            ValidationError::RequiredField {
+                field: field.to_string(),
+            },
+        ));
     }
     Ok(())
 }
@@ -174,7 +188,11 @@ pub fn validate_required_string(field: &str, value: &str) -> Result<()> {
 /// Validate required field is present
 pub fn validate_required_field<T>(field: &str, value: &Option<T>) -> Result<()> {
     if value.is_none() {
-        return Err(ValidationError::required_field(field));
+        return Err(BunkerVerseError::Validation(
+            ValidationError::RequiredField {
+                field: field.to_string(),
+            },
+        ));
     }
     Ok(())
 }
@@ -279,16 +297,18 @@ pub fn validate_gas_limit(gas_limit: u64) -> Result<()> {
 pub fn validate_signature(signature: &str) -> Result<()> {
     if signature.len() != 130 {
         // 65 bytes * 2 (hex) = 130 chars
-        return Err(ValidationError::InvalidFormat(format!(
-            "Invalid signature length: expected 130 chars, got {}",
-            signature.len()
-        )));
+        return Err(BunkerVerseError::Validation(
+            ValidationError::InvalidFormat(format!(
+                "Invalid signature length: expected 130 chars, got {}",
+                signature.len()
+            )),
+        ));
     }
 
     // Check if it's valid hex
     if !signature.chars().all(|c| c.is_ascii_hexdigit()) {
-        return Err(ValidationError::InvalidFormat(
-            "Signature must be valid hexadecimal".to_string(),
+        return Err(BunkerVerseError::Validation(
+            ValidationError::InvalidFormat("Signature must be valid hexadecimal".to_string()),
         ));
     }
 
@@ -298,16 +318,17 @@ pub fn validate_signature(signature: &str) -> Result<()> {
 /// Validate transaction hash format
 pub fn validate_transaction_hash(tx_hash: &str) -> Result<()> {
     if !tx_hash.starts_with("0x") || tx_hash.len() != 66 {
-        return Err(ValidationError::InvalidFormat(format!(
-            "Invalid transaction hash format: {}",
-            tx_hash
-        )));
+        return Err(BunkerVerseError::Validation(
+            ValidationError::InvalidFormat(format!("Invalid transaction hash format: {}", tx_hash)),
+        ));
     }
 
     let hex_part = &tx_hash[2..];
     if !hex_part.chars().all(|c| c.is_ascii_hexdigit()) {
-        return Err(ValidationError::InvalidFormat(
-            "Transaction hash must be valid hexadecimal".to_string(),
+        return Err(BunkerVerseError::Validation(
+            ValidationError::InvalidFormat(
+                "Transaction hash must be valid hexadecimal".to_string(),
+            ),
         ));
     }
 
@@ -317,18 +338,22 @@ pub fn validate_transaction_hash(tx_hash: &str) -> Result<()> {
 /// Validate URL format (basic check)
 pub fn validate_url(url: &str) -> Result<()> {
     if !url.starts_with("http://") && !url.starts_with("https://") {
-        return Err(ValidationError::InvalidFormat(format!(
-            "Invalid URL format: must start with http:// or https://"
-        )));
+        return Err(BunkerVerseError::Validation(
+            ValidationError::InvalidFormat(format!(
+                "Invalid URL format: must start with http:// or https://"
+            )),
+        ));
     }
 
     if url.len() > 2048 {
-        return Err(ValidationError::InvalidLength {
-            field: "url".to_string(),
-            actual: url.len(),
-            min: 1,
-            max: 2048,
-        });
+        return Err(BunkerVerseError::Validation(
+            ValidationError::InvalidLength {
+                field: "url".to_string(),
+                actual: url.len(),
+                min: 1,
+                max: 2048,
+            },
+        ));
     }
 
     Ok(())
@@ -341,10 +366,12 @@ pub fn validate_url(url: &str) -> Result<()> {
 /// Validate enum values by name
 pub fn validate_enum_value(field: &str, value: &str, valid_values: &[&str]) -> Result<()> {
     if !valid_values.contains(&value) {
-        return Err(ValidationError::InvalidEnumValue {
-            field: field.to_string(),
-            value: value.to_string(),
-        });
+        return Err(BunkerVerseError::Validation(
+            ValidationError::InvalidEnumValue {
+                field: field.to_string(),
+                value: value.to_string(),
+            },
+        ));
     }
     Ok(())
 }
@@ -435,9 +462,7 @@ pub fn validate_nft_id_list(nft_ids: &[String]) -> Result<()> {
 pub fn validate_pagination(page: u32, page_size: u32) -> Result<()> {
     if page == 0 {
         return Err(crate::errors::BunkerVerseError::Validation(
-            ValidationError::InvalidFormat(
-                "Page number must be >= 1".to_string()
-            )
+            ValidationError::InvalidFormat("Page number must be >= 1".to_string()),
         ));
     }
 
@@ -448,7 +473,7 @@ pub fn validate_pagination(page: u32, page_size: u32) -> Result<()> {
                 value: page_size.to_string(),
                 min: Some("1".to_string()),
                 max: Some("100".to_string()),
-            }
+            },
         ));
     }
 
