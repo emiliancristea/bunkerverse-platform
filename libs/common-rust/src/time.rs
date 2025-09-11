@@ -19,6 +19,9 @@ pub struct Timestamp(i64);
 impl Timestamp {
     /// Minimum valid timestamp (2021-01-01 00:00:00 UTC)
     pub const MIN: i64 = 1609459200;
+    
+    /// Maximum future offset (1 day in seconds)
+    pub const MAX_FUTURE_OFFSET_SECONDS: i64 = 86400;
 
     /// Create Timestamp from Unix seconds with validation
     pub fn from_unix_seconds(seconds: i64) -> Result<Self> {
@@ -130,8 +133,27 @@ impl From<Timestamp> for i64 {
 impl TryFrom<i64> for Timestamp {
     type Error = ValidationError;
 
-    fn try_from(seconds: i64) -> Result<Self> {
-        Self::from_unix_seconds(seconds)
+    fn try_from(seconds: i64) -> std::result::Result<Self, ValidationError> {
+        if seconds < Self::MIN {
+            return Err(ValidationError::OutOfRange {
+                field: "timestamp".to_string(),
+                value: seconds.to_string(),
+                min: Some(Self::MIN.to_string()),
+                max: Some("current time + 1 day".to_string()),
+            });
+        }
+        
+        let current_time = current_unix_timestamp();
+        if seconds > current_time + Self::MAX_FUTURE_OFFSET_SECONDS {
+            return Err(ValidationError::OutOfRange {
+                field: "timestamp".to_string(),
+                value: seconds.to_string(),
+                min: Some(Self::MIN.to_string()),
+                max: Some((current_time + Self::MAX_FUTURE_OFFSET_SECONDS).to_string()),
+            });
+        }
+
+        Ok(Self(seconds))
     }
 }
 

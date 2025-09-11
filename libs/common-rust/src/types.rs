@@ -56,8 +56,13 @@ impl fmt::Display for PlayerId {
 impl FromStr for PlayerId {
     type Err = ValidationError;
 
-    fn from_str(s: &str) -> Result<Self> {
-        Self::from_string(s)
+    fn from_str(s: &str) -> std::result::Result<Self, ValidationError> {
+        let uuid = Uuid::from_str(s)
+            .map_err(|_| ValidationError::InvalidFormat("Invalid UUID format".to_string()))?;
+        if uuid.get_version() != Some(uuid::Version::Random) {
+            return Err(ValidationError::InvalidFormat("Must be UUID v4".to_string()));
+        }
+        Ok(Self(uuid))
     }
 }
 
@@ -110,8 +115,13 @@ impl fmt::Display for NftId {
 impl FromStr for NftId {
     type Err = ValidationError;
 
-    fn from_str(s: &str) -> Result<Self> {
-        Self::from_string(s)
+    fn from_str(s: &str) -> std::result::Result<Self, ValidationError> {
+        let uuid = Uuid::from_str(s)
+            .map_err(|_| ValidationError::InvalidFormat("Invalid UUID format".to_string()))?;
+        if uuid.get_version() != Some(uuid::Version::Random) {
+            return Err(ValidationError::InvalidFormat("Must be UUID v4".to_string()));
+        }
+        Ok(Self(uuid))
     }
 }
 
@@ -159,8 +169,13 @@ impl fmt::Display for MissionId {
 impl FromStr for MissionId {
     type Err = ValidationError;
 
-    fn from_str(s: &str) -> Result<Self> {
-        Self::from_string(s)
+    fn from_str(s: &str) -> std::result::Result<Self, ValidationError> {
+        let uuid = Uuid::from_str(s)
+            .map_err(|_| ValidationError::InvalidFormat("Invalid UUID format".to_string()))?;
+        if uuid.get_version() != Some(uuid::Version::Random) {
+            return Err(ValidationError::InvalidFormat("Must be UUID v4".to_string()));
+        }
+        Ok(Self(uuid))
     }
 }
 
@@ -208,8 +223,13 @@ impl fmt::Display for RobotId {
 impl FromStr for RobotId {
     type Err = ValidationError;
 
-    fn from_str(s: &str) -> Result<Self> {
-        Self::from_string(s)
+    fn from_str(s: &str) -> std::result::Result<Self, ValidationError> {
+        let uuid = Uuid::from_str(s)
+            .map_err(|_| ValidationError::InvalidFormat("Invalid UUID format".to_string()))?;
+        if uuid.get_version() != Some(uuid::Version::Random) {
+            return Err(ValidationError::InvalidFormat("Must be UUID v4".to_string()));
+        }
+        Ok(Self(uuid))
     }
 }
 
@@ -275,8 +295,19 @@ impl fmt::Display for EthereumAddress {
 impl FromStr for EthereumAddress {
     type Err = ValidationError;
 
-    fn from_str(s: &str) -> Result<Self> {
-        Self::from_string(s)
+    fn from_str(s: &str) -> std::result::Result<Self, ValidationError> {
+        if !s.starts_with("0x") || s.len() != 42 {
+            return Err(ValidationError::InvalidFormat(
+                "Ethereum address must be 42 characters starting with 0x".to_string()
+            ));
+        }
+        let hex_part = &s[2..];
+        if !hex_part.chars().all(|c| c.is_ascii_hexdigit()) {
+            return Err(ValidationError::InvalidFormat(
+                "Ethereum address must contain only hex characters".to_string()
+            ));
+        }
+        Ok(Self(s.to_string()))
     }
 }
 

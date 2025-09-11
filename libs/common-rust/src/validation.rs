@@ -246,8 +246,8 @@ pub fn validate_xp_amount(xp: u64) -> Result<()> {
 
 /// Validate NTC amount in wei (reasonable bounds)
 pub fn validate_ntc_amount_wei(amount_wei: u64) -> Result<()> {
-    // Max reasonable amount: 100 billion NTC in wei
-    const MAX_REASONABLE_WEI: u64 = 100_000_000_000 * 1_000_000_000_000_000_000;
+    // Max reasonable amount: ~18 ETH equivalent (max u64)
+    const MAX_REASONABLE_WEI: u64 = u64::MAX;
     validate_numeric_range("ntc_amount", amount_wei, 0, MAX_REASONABLE_WEI)?;
     Ok(())
 }
@@ -339,7 +339,7 @@ pub fn validate_url(url: &str) -> Result<()> {
 // ============================================================================
 
 /// Validate enum values by name
-pub fn validate_enum_value<T>(field: &str, value: &str, valid_values: &[&str]) -> Result<()> {
+pub fn validate_enum_value(field: &str, value: &str, valid_values: &[&str]) -> Result<()> {
     if !valid_values.contains(&value) {
         return Err(ValidationError::InvalidEnumValue {
             field: field.to_string(),
@@ -434,18 +434,22 @@ pub fn validate_nft_id_list(nft_ids: &[String]) -> Result<()> {
 /// Validate pagination parameters
 pub fn validate_pagination(page: u32, page_size: u32) -> Result<()> {
     if page == 0 {
-        return Err(ValidationError::InvalidFormat(
-            "Page number must be >= 1".to_string(),
+        return Err(crate::errors::BunkerVerseError::Validation(
+            ValidationError::InvalidFormat(
+                "Page number must be >= 1".to_string()
+            )
         ));
     }
 
     if page_size == 0 || page_size > 100 {
-        return Err(ValidationError::OutOfRange {
-            field: "page_size".to_string(),
-            value: page_size.to_string(),
-            min: Some("1".to_string()),
-            max: Some("100".to_string()),
-        });
+        return Err(crate::errors::BunkerVerseError::Validation(
+            ValidationError::OutOfRange {
+                field: "page_size".to_string(),
+                value: page_size.to_string(),
+                min: Some("1".to_string()),
+                max: Some("100".to_string()),
+            }
+        ));
     }
 
     Ok(())
