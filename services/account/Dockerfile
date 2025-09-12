@@ -14,12 +14,10 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /usr/src/app
 
-# Copy workspace files for better caching
-COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
-COPY libs/ ./libs/
-COPY schemas/ ./schemas/
-COPY contracts/ ./contracts/
-COPY services/ ./services/
+# Copy service files
+COPY services/account/ ./
+# Copy rust toolchain if it exists
+COPY rust-toolchain.tom[l] ./ 
 
 # Build the service in release mode
 RUN cargo build --release --bin account-service

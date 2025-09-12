@@ -1,4 +1,4 @@
-# Multi-stage Dockerfile for Ai_data Service
+# Multi-stage Dockerfile for Service
 # Optimized for security and minimal size per Task 0.4 requirements
 
 # Stage 1: Builder
@@ -14,12 +14,10 @@ RUN apt-get update && apt-get install -y \
 # Set working directory
 WORKDIR /usr/src/app
 
-# Copy workspace files for better caching
-COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
-COPY libs/ ./libs/
-COPY schemas/ ./schemas/
-COPY contracts/ ./contracts/
-COPY services/ ./services/
+# Copy service files
+COPY services/ai_data/ ./
+# Copy rust toolchain if it exists
+COPY rust-toolchain.tom[l] ./ 
 
 # Build the service in release mode
 RUN cargo build --release --bin ai_data-service
@@ -35,11 +33,10 @@ COPY --from=builder --chown=nonroot:nonroot \
 USER nonroot
 
 # Expose the service port
-EXPOSE 8084
+EXPOSE 8080
 
-# Health check endpoint
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD ["/usr/local/bin/ai_data-service", "--health-check"]
+# Note: Health checks disabled for distroless (no shell)
+# Health checks should be configured in orchestration layer (k8s/docker-compose)
 
 # Run the service
 ENTRYPOINT ["/usr/local/bin/ai_data-service"]
