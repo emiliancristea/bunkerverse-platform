@@ -3,5 +3,9 @@ name = "ai-data-service"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "ai_data-service"
+path = "src/main.rs"
+
 [dependencies]
 # Basic dependencies for stub implementation
