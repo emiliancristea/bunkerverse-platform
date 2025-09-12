@@ -1,0 +1,10 @@
+[package]
+name = "player-account-service"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "player_account-service"
+path = "src/main.rs"
+
+[dependencies]
