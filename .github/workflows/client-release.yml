@@ -1,0 +1,386 @@
+name: Client Release Build and Sign
+
+on:
+  push:
+    tags:
+      - 'v*'
+      - 'client-v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to build (e.g., 1.0.0)'
+        required: true
+        default: '1.0.0'
+      release_type:
+        description: 'Release type'
+        required: true
+        default: 'beta'
+        type: choice
+        options:
+          - alpha
+          - beta
+          - release
+
+env:
+  VERSION: ${{ github.event.inputs.version || github.ref_name }}
+
+jobs:
+  build-and-sign-windows:
+    name: Build and Sign Windows Installer
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+      
+      - name: Setup Qt
+        run: |
+          # Install Qt 6.9.2 using aqt
+          pip install aqtinstall
+          aqt install-qt windows desktop 6.9.2 win64_msvc2022_64 -O C:\Qt
+          echo "Qt6_DIR=C:\Qt\6.9.2\msvc2022_64" >> $env:GITHUB_ENV
+          echo "CMAKE_PREFIX_PATH=C:\Qt\6.9.2\msvc2022_64" >> $env:GITHUB_ENV
+          echo "C:\Qt\6.9.2\msvc2022_64\bin" >> $env:GITHUB_PATH
+      
+      - name: Install WiX Toolset
+        run: |
+          choco install wixtoolset -y
+          echo "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $env:GITHUB_PATH
+      
+      - name: Build Rust components
+        run: |
+          cargo build --release --manifest-path client/rust-app-logic/Cargo.toml
+          cargo build --release --manifest-path libs/nar-rust-wrapper-for-llama-cpp/Cargo.toml
+      
+      - name: Import code signing certificate
+        if: secrets.WINDOWS_CERT_BASE64 != ''
+        env:
+          CERT_BASE64: ${{ secrets.WINDOWS_CERT_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.WINDOWS_CERT_PASSWORD }}
+        run: |
+          $cert = [System.Convert]::FromBase64String($env:CERT_BASE64)
+          $certPath = "signing-cert.pfx"
+          [System.IO.File]::WriteAllBytes($certPath, $cert)
+          
+          # Import to certificate store
+          $securePwd = ConvertTo-SecureString -String $env:CERT_PASSWORD -Force -AsPlainText
+          Import-PfxCertificate -FilePath $certPath -CertStoreLocation Cert:\CurrentUser\My -Password $securePwd
+          
+          # Get thumbprint for signing
+          $thumbprint = (Get-PfxCertificate -FilePath $certPath -Password $securePwd).Thumbprint
+          echo "CERT_THUMBPRINT=$thumbprint" >> $env:GITHUB_ENV
+          
+          Remove-Item $certPath
+      
+      - name: Build Windows installer
+        working-directory: client/installer/windows
+        run: |
+          .\build-installer.ps1 `
+            -Version "${{ env.VERSION }}" `
+            -BuildDir "..\..\..\target\release" `
+            -QtDir "${{ env.Qt6_DIR }}" `
+            -OutputDir ".\output"
+      
+      - name: Sign Windows installer
+        if: env.CERT_THUMBPRINT != ''
+        working-directory: client/installer/windows/output
+        run: |
+          $signtool = "C:\Program Files (x86)\Windows Kits\10\bin\10.0.22621.0\x64\signtool.exe"
+          if (-not (Test-Path $signtool)) {
+            $signtool = "C:\Program Files (x86)\Windows Kits\10\bin\x64\signtool.exe"
+          }
+          
+          # Sign MSI
+          & $signtool sign /sha1 $env:CERT_THUMBPRINT `
+            /t http://timestamp.digicert.com `
+            /fd sha256 `
+            /d "BunkerVerse Control Center" `
+            /du "https://bunkerverse.io" `
+            "BunkerVerseControlCenter-${{ env.VERSION }}.msi"
+          
+          # Sign EXE bundle if exists
+          if (Test-Path "BunkerVerseControlCenter-${{ env.VERSION }}-Setup.exe") {
+            & $signtool sign /sha1 $env:CERT_THUMBPRINT `
+              /t http://timestamp.digicert.com `
+              /fd sha256 `
+              /d "BunkerVerse Control Center Setup" `
+              /du "https://bunkerverse.io" `
+              "BunkerVerseControlCenter-${{ env.VERSION }}-Setup.exe"
+          }
+          
+          # Verify signatures
+          & $signtool verify /pa /v "BunkerVerseControlCenter-${{ env.VERSION }}.msi"
+      
+      - name: Upload Windows artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-installer-signed
+          path: |
+            client/installer/windows/output/*.msi
+            client/installer/windows/output/*.exe
+
+  build-and-sign-macos:
+    name: Build and Sign macOS Installer
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+      
+      - name: Install Qt
+        run: |
+          # Install Qt 6.9.2 using aqt
+          pip3 install aqtinstall
+          aqt install-qt mac desktop 6.9.2 clang_64 -O ~/Qt
+          echo "Qt6_DIR=$HOME/Qt/6.9.2/clang_64" >> $GITHUB_ENV
+          echo "CMAKE_PREFIX_PATH=$HOME/Qt/6.9.2/clang_64" >> $GITHUB_ENV
+          echo "$HOME/Qt/6.9.2/clang_64/bin" >> $GITHUB_PATH
+      
+      - name: Build Rust components
+        run: |
+          cargo build --release --manifest-path client/rust-app-logic/Cargo.toml
+          cargo build --release --manifest-path libs/nar-rust-wrapper-for-llama-cpp/Cargo.toml
+      
+      - name: Import code signing certificate
+        if: secrets.MACOS_CERT_BASE64 != ''
+        env:
+          CERT_BASE64: ${{ secrets.MACOS_CERT_BASE64 }}
+          CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.MACOS_KEYCHAIN_PASSWORD }}
+        run: |
+          # Create temporary keychain
+          KEYCHAIN_NAME="build.keychain"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
+          security default-keychain -s "$KEYCHAIN_NAME"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_NAME"
+          
+          # Import certificate
+          echo "$CERT_BASE64" | base64 --decode > certificate.p12
+          security import certificate.p12 -k "$KEYCHAIN_NAME" -P "$CERT_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_NAME"
+          
+          # Get identity
+          IDENTITY=$(security find-identity -v -p codesigning "$KEYCHAIN_NAME" | grep "Developer ID Application" | awk '{print $2}' | head -1)
+          echo "SIGNING_IDENTITY=$IDENTITY" >> $GITHUB_ENV
+          
+          rm certificate.p12
+      
+      - name: Build macOS installer
+        working-directory: client/installer/macos
+        env:
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APPLE_SIGNING_IDENTITY: ${{ env.SIGNING_IDENTITY }}
+        run: |
+          chmod +x create-dmg.sh
+          ./create-dmg.sh "${{ env.VERSION }}" \
+            "../../../target/release" \
+            "${{ env.Qt6_DIR }}" \
+            "./output" \
+            "${{ env.SIGNING_IDENTITY }}"
+      
+      - name: Notarize macOS installer
+        if: env.SIGNING_IDENTITY != '' && secrets.APPLE_NOTARIZATION_EMAIL != ''
+        working-directory: client/installer/macos/output
+        env:
+          APPLE_NOTARIZATION_EMAIL: ${{ secrets.APPLE_NOTARIZATION_EMAIL }}
+          APPLE_NOTARIZATION_PASSWORD: ${{ secrets.APPLE_NOTARIZATION_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          DMG_FILE="BunkerVerseControlCenter-${{ env.VERSION }}.dmg"
+          
+          # Submit for notarization
+          xcrun notarytool submit "$DMG_FILE" \
+            --apple-id "$APPLE_NOTARIZATION_EMAIL" \
+            --password "$APPLE_NOTARIZATION_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" \
+            --wait
+          
+          # Staple the notarization ticket
+          xcrun stapler staple "$DMG_FILE"
+          
+          # Verify
+          spctl -a -vvv -t install "$DMG_FILE"
+      
+      - name: Upload macOS artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-installer-signed
+          path: client/installer/macos/output/*.dmg
+
+  build-linux:
+    name: Build Linux AppImage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Setup Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+      
+      - name: Install Qt and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential cmake ninja-build \
+            libgl1-mesa-dev libvulkan-dev \
+            libxkbcommon-dev libxcb-xkb-dev \
+            libfuse2 file
+          # Install Qt 6.9.2 using aqt
+          pip3 install aqtinstall
+          aqt install-qt linux desktop 6.9.2 gcc_64 -O /opt/qt6
+          echo "Qt6_DIR=/opt/qt6/6.9.2/gcc_64" >> $GITHUB_ENV
+          echo "CMAKE_PREFIX_PATH=/opt/qt6/6.9.2/gcc_64" >> $GITHUB_ENV
+          echo "/opt/qt6/6.9.2/gcc_64/bin" >> $GITHUB_PATH
+      
+      - name: Build Rust components
+        run: |
+          cargo build --release --manifest-path client/rust-app-logic/Cargo.toml
+          cargo build --release --manifest-path libs/nar-rust-wrapper-for-llama-cpp/Cargo.toml
+      
+      - name: Build Linux AppImage
+        working-directory: client/installer/linux
+        run: |
+          chmod +x create-appimage.sh
+          ./create-appimage.sh "${{ env.VERSION }}" \
+            "../../../target/release" \
+            "${{ env.Qt6_DIR }}" \
+            "./output"
+      
+      - name: Sign AppImage (optional GPG signature)
+        if: secrets.GPG_PRIVATE_KEY != ''
+        working-directory: client/installer/linux/output
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+        run: |
+          # Import GPG key
+          echo "$GPG_PRIVATE_KEY" | gpg --batch --import
+          
+          # Sign AppImage
+          APPIMAGE="BunkerVerseControlCenter-${{ env.VERSION }}-x86_64.AppImage"
+          gpg --batch --yes --passphrase "$GPG_PASSPHRASE" \
+            --pinentry-mode loopback \
+            --detach-sign --armor "$APPIMAGE"
+          
+          # Verify signature
+          gpg --verify "${APPIMAGE}.asc" "$APPIMAGE"
+      
+      - name: Upload Linux artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-appimage
+          path: |
+            client/installer/linux/output/*.AppImage
+            client/installer/linux/output/*.AppImage.asc
+            client/installer/linux/output/*.deb
+
+  create-release:
+    name: Create GitHub Release
+    needs: [build-and-sign-windows, build-and-sign-macos, build-linux]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+      
+      - name: Create checksums
+        working-directory: release-artifacts
+        run: |
+          find . -type f \( -name "*.msi" -o -name "*.exe" -o -name "*.dmg" -o -name "*.AppImage" -o -name "*.deb" \) \
+            -exec sha256sum {} \; > SHA256SUMS.txt
+          
+          # Sign checksums if GPG key available
+          if [ -n "${{ secrets.GPG_PRIVATE_KEY }}" ]; then
+            echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+            gpg --batch --yes --passphrase "${{ secrets.GPG_PASSPHRASE }}" \
+              --pinentry-mode loopback \
+              --detach-sign --armor SHA256SUMS.txt
+          fi
+      
+      - name: Create release notes
+        run: |
+          cat > RELEASE_NOTES.md << EOF
+          # BunkerVerse Control Center ${{ env.VERSION }}
+          
+          ## Downloads
+          
+          ### Windows
+          - **Installer**: BunkerVerseControlCenter-${{ env.VERSION }}.msi
+          - **Setup Bundle**: BunkerVerseControlCenter-${{ env.VERSION }}-Setup.exe
+          
+          ### macOS
+          - **DMG**: BunkerVerseControlCenter-${{ env.VERSION }}.dmg
+          
+          ### Linux
+          - **AppImage**: BunkerVerseControlCenter-${{ env.VERSION }}-x86_64.AppImage
+          - **Debian Package**: bunkerverse-control-center_${{ env.VERSION }}_amd64.deb
+          
+          ## Verification
+          
+          All binaries are signed with official BunkerVerse certificates.
+          
+          To verify downloads, check the SHA256SUMS.txt file:
+          \`\`\`bash
+          sha256sum -c SHA256SUMS.txt
+          \`\`\`
+          
+          For GPG verification (if available):
+          \`\`\`bash
+          gpg --verify SHA256SUMS.txt.asc SHA256SUMS.txt
+          \`\`\`
+          
+          ## Installation
+          
+          ### Windows
+          Run the MSI installer or Setup.exe bundle. The application is signed with our EV certificate.
+          
+          ### macOS
+          Open the DMG file and drag BunkerVerse Control Center to Applications. The app is notarized by Apple.
+          
+          ### Linux
+          Make the AppImage executable and run:
+          \`\`\`bash
+          chmod +x BunkerVerseControlCenter-${{ env.VERSION }}-x86_64.AppImage
+          ./BunkerVerseControlCenter-${{ env.VERSION }}-x86_64.AppImage
+          \`\`\`
+          
+          ## Changes
+          See [CHANGELOG.md](CHANGELOG.md) for detailed changes.
+          EOF
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ env.VERSION }}
+          name: BunkerVerse Control Center ${{ env.VERSION }}
+          body_path: RELEASE_NOTES.md
+          draft: false
+          prerelease: ${{ github.event.inputs.release_type != 'release' }}
+          files: |
+            release-artifacts/**/*.msi
+            release-artifacts/**/*.exe
+            release-artifacts/**/*.dmg
+            release-artifacts/**/*.AppImage
+            release-artifacts/**/*.AppImage.asc
+            release-artifacts/**/*.deb
+            release-artifacts/**/SHA256SUMS.txt
+            release-artifacts/**/SHA256SUMS.txt.asc

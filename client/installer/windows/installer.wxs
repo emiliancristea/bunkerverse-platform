@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi"
+     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  
+  <?define ProductName = "BunkerVerse Control Center" ?>
+  <?define ProductManufacturer = "BunkerVerse Corporation" ?>
+  <?define ProductVersion = "1.0.0.0" ?>
+  <?define ProductUpgradeCode = "{A8E5F3B2-9D4C-4F7E-B3A1-6C8D2E5F9A0B}" ?>
+  <?define ProductId = "*" ?>
+  
+  <Product Id="$(var.ProductId)"
+           Name="$(var.ProductName)"
+           Language="1033"
+           Version="$(var.ProductVersion)"
+           Manufacturer="$(var.ProductManufacturer)"
+           UpgradeCode="$(var.ProductUpgradeCode)">
+    
+    <Package InstallerVersion="500"
+             Compressed="yes"
+             InstallScope="perMachine"
+             Platform="x64"
+             Manufacturer="$(var.ProductManufacturer)"
+             Description="BunkerVerse Control Center - Unified Game Management Platform"
+             Comments="Copyright (C) 2024 BunkerVerse Corporation. All rights reserved." />
+    
+    <!-- Upgrade logic -->
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed."
+                  AllowSameVersionUpgrades="yes" />
+    
+    <!-- Media -->
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+    
+    <!-- Icon -->
+    <Icon Id="ProductIcon" SourceFile="assets\bunkerverse.ico" />
+    <Property Id="ARPPRODUCTICON" Value="ProductIcon" />
+    
+    <!-- License -->
+    <WixVariable Id="WixUILicenseRtf" Value="assets\license.rtf" />
+    <WixVariable Id="WixUIBannerBmp" Value="assets\banner.bmp" />
+    <WixVariable Id="WixUIDialogBmp" Value="assets\dialog.bmp" />
+    
+    <!-- Properties -->
+    <Property Id="WIXUI_INSTALLDIR" Value="INSTALLDIR" />
+    <Property Id="ARPURLINFOABOUT" Value="https://bunkerverse.io" />
+    <Property Id="ARPURLUPDATEINFO" Value="https://bunkerverse.io/updates" />
+    <Property Id="ARPHELPLINK" Value="https://bunkerverse.io/support" />
+    
+    <!-- Prerequisites check -->
+    <Condition Message="This application requires Windows 10 version 1903 or higher.">
+      <![CDATA[Installed OR (VersionNT64 >= 603 AND WindowsBuild >= 18362)]]>
+    </Condition>
+    
+    <Condition Message="This application requires a 64-bit operating system.">
+      <![CDATA[Installed OR VersionNT64]]>
+    </Condition>
+    
+    <!-- Directory structure -->
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="ProgramFiles64Folder">
+        <Directory Id="CompanyFolder" Name="$(var.ProductManufacturer)">
+          <Directory Id="INSTALLDIR" Name="$(var.ProductName)">
+            
+            <!-- Main application files -->
+            <Component Id="MainExecutable" Guid="{B7C5E3A1-8D2F-4C6B-9A3E-5F8D2C7B4E0A}" Win64="yes">
+              <File Id="BunkerVerseControlCenter.exe"
+                    Source="$(var.BuildDir)\bunkerverse-control-center.exe"
+                    KeyPath="yes">
+                <Shortcut Id="StartMenuShortcut"
+                          Directory="ProgramMenuFolder"
+                          Name="$(var.ProductName)"
+                          Description="Launch BunkerVerse Control Center"
+                          WorkingDirectory="INSTALLDIR"
+                          Icon="ProductIcon"
+                          IconIndex="0"
+                          Advertise="yes" />
+              </File>
+              
+              <!-- File associations -->
+              <ProgId Id="BunkerVerse.Project" Description="BunkerVerse Project File">
+                <Extension Id="bvproj" ContentType="application/x-bunkerverse-project">
+                  <Verb Id="open" Command="Open" TargetFile="BunkerVerseControlCenter.exe" Argument='"%1"' />
+                </Extension>
+              </ProgId>
+            </Component>
+            
+            <!-- Rust libraries -->
+            <Component Id="RustAppLogic" Guid="{C8F4A2B3-9E5D-4F8C-B4A2-7D9E3F6C5B1A}" Win64="yes">
+              <File Id="client_rust_app_logic.dll"
+                    Source="$(var.BuildDir)\client_rust_app_logic.dll"
+                    KeyPath="yes" />
+            </Component>
+            
+            <Component Id="NarLibrary" Guid="{D9E5B3C4-0F6E-5G9D-C5B3-8E0F4G7D6C2B}" Win64="yes">
+              <File Id="nar_rust_wrapper_for_llama_cpp.dll"
+                    Source="$(var.BuildDir)\nar_rust_wrapper_for_llama_cpp.dll"
+                    KeyPath="yes" />
+            </Component>
+            
+            <!-- Qt dependencies -->
+            <Directory Id="QtBinDir" Name="bin">
+              <Component Id="QtCore" Guid="{E0F6C4D5-1G7F-6H0E-D6C4-9F1G5H8E7D3C}" Win64="yes">
+                <File Id="Qt6Core.dll" Source="$(var.QtDir)\bin\Qt6Core.dll" KeyPath="yes" />
+              </Component>
+              <Component Id="QtGui" Guid="{F1G7D5E6-2H8G-7I1F-E7D5-0G2H6I9F8E4D}" Win64="yes">
+                <File Id="Qt6Gui.dll" Source="$(var.QtDir)\bin\Qt6Gui.dll" KeyPath="yes" />
+              </Component>
+              <Component Id="QtWidgets" Guid="{G2H8E6F7-3I9H-8J2G-F8E6-1H3I7J0G9F5E}" Win64="yes">
+                <File Id="Qt6Widgets.dll" Source="$(var.QtDir)\bin\Qt6Widgets.dll" KeyPath="yes" />
+              </Component>
+              <Component Id="QtQml" Guid="{H3I9F7G8-4J0I-9K3H-G9F7-2I4J8K1H0G6F}" Win64="yes">
+                <File Id="Qt6Qml.dll" Source="$(var.QtDir)\bin\Qt6Qml.dll" KeyPath="yes" />
+              </Component>
+              <Component Id="QtQuick" Guid="{I4J0G8H9-5K1J-0L4I-H0G8-3J5K9L2I1H7G}" Win64="yes">
+                <File Id="Qt6Quick.dll" Source="$(var.QtDir)\bin\Qt6Quick.dll" KeyPath="yes" />
+              </Component>
+            </Directory>
+            
+            <!-- QML files -->
+            <Directory Id="QmlDir" Name="qml">
+              <Component Id="QmlFiles" Guid="{J5K1H9I0-6L2K-1M5J-I1H9-4K6L0M3J2I8H}" Win64="yes">
+                <File Id="main.qml" Source="$(var.BuildDir)\qml\main.qml" KeyPath="yes" />
+              </Component>
+            </Directory>
+            
+            <!-- Resources -->
+            <Directory Id="ResourcesDir" Name="resources">
+              <Component Id="Resources" Guid="{K6L2I0J1-7M3L-2N6K-J2I0-5L7M1N4K3J9I}" Win64="yes">
+                <File Id="app.ico" Source="assets\bunkerverse.ico" KeyPath="yes" />
+              </Component>
+            </Directory>
+            
+            <!-- Configuration files -->
+            <Component Id="Configuration" Guid="{L7M3J1K2-8N4M-3O7L-K3J1-6M8N2O5L4K0J}" Win64="yes">
+              <File Id="config.toml" Source="$(var.BuildDir)\config.toml" KeyPath="yes" />
+              
+              <!-- Registry entries -->
+              <RegistryKey Root="HKLM" Key="Software\$(var.ProductManufacturer)\$(var.ProductName)">
+                <RegistryValue Type="string" Name="InstallPath" Value="[INSTALLDIR]" />
+                <RegistryValue Type="string" Name="Version" Value="$(var.ProductVersion)" />
+              </RegistryKey>
+            </Component>
+            
+          </Directory>
+        </Directory>
+      </Directory>
+      
+      <!-- Start Menu -->
+      <Directory Id="ProgramMenuFolder">
+        <Directory Id="ApplicationProgramsFolder" Name="$(var.ProductName)" />
+      </Directory>
+      
+      <!-- Desktop -->
+      <Directory Id="DesktopFolder" Name="Desktop">
+        <Component Id="DesktopShortcut" Guid="{M8N4K2L3-9O5N-4P8M-L4K2-7N9O3P6M5L1K}" Win64="yes">
+          <Shortcut Id="DesktopShortcut"
+                    Name="$(var.ProductName)"
+                    Description="Launch BunkerVerse Control Center"
+                    Target="[INSTALLDIR]bunkerverse-control-center.exe"
+                    WorkingDirectory="INSTALLDIR"
+                    Icon="ProductIcon"
+                    IconIndex="0" />
+          <RemoveFolder Id="DesktopFolder" On="uninstall" />
+          <RegistryValue Root="HKCU"
+                         Key="Software\$(var.ProductManufacturer)\$(var.ProductName)"
+                         Name="DesktopShortcut"
+                         Type="integer"
+                         Value="1"
+                         KeyPath="yes" />
+        </Component>
+      </Directory>
+    </Directory>
+    
+    <!-- Features -->
+    <Feature Id="Complete" Title="$(var.ProductName)" Level="1"
+             Description="Complete installation of BunkerVerse Control Center"
+             ConfigurableDirectory="INSTALLDIR"
+             AllowAdvertise="no"
+             Absent="disallow">
+      
+      <ComponentRef Id="MainExecutable" />
+      <ComponentRef Id="RustAppLogic" />
+      <ComponentRef Id="NarLibrary" />
+      <ComponentRef Id="QtCore" />
+      <ComponentRef Id="QtGui" />
+      <ComponentRef Id="QtWidgets" />
+      <ComponentRef Id="QtQml" />
+      <ComponentRef Id="QtQuick" />
+      <ComponentRef Id="QmlFiles" />
+      <ComponentRef Id="Resources" />
+      <ComponentRef Id="Configuration" />
+      <ComponentRef Id="DesktopShortcut" />
+      
+      <!-- Visual C++ Redistributables -->
+      <ComponentGroupRef Id="VCRedist" />
+    </Feature>
+    
+    <!-- Custom Actions -->
+    <CustomAction Id="LaunchApplication"
+                  FileKey="BunkerVerseControlCenter.exe"
+                  ExeCommand=""
+                  Execute="immediate"
+                  Impersonate="yes"
+                  Return="asyncNoWait" />
+    
+    <!-- UI -->
+    <UIRef Id="WixUI_InstallDir" />
+    <UIRef Id="WixUI_ErrorProgressText" />
+    
+    <!-- Launch app after install -->
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOXTEXT" Value="Launch $(var.ProductName)" />
+    <Property Id="WIXUI_EXITDIALOGOPTIONALCHECKBOX" Value="1" />
+    <Property Id="WixShellExecTarget" Value="[#BunkerVerseControlCenter.exe]" />
+    <CustomAction Id="LaunchApp" BinaryKey="WixCA" DllEntry="WixShellExec" Impersonate="yes" />
+    
+    <InstallExecuteSequence>
+      <Custom Action="LaunchApp" After="InstallFinalize">
+        WIXUI_EXITDIALOGOPTIONALCHECKBOX = 1 AND NOT Installed
+      </Custom>
+    </InstallExecuteSequence>
+    
+  </Product>
+</Wix>
