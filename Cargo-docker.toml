@@ -1,11 +1,6 @@
 [workspace]
 resolver = "2"
-exclude = [
-    "libs/nar-rust-wrapper-for-llama-cpp/fuzz",
-    "poc/*",
-]
 members = [
-    "contracts",
     "services/identity",
     "services/account", 
     "services/marketplace",
@@ -16,9 +11,6 @@ members = [
     "services/feedback",
     "services/indexer",
     "services/ipfs-mock",
-    "libs/common-rust",
-    "libs/nar-rust-wrapper-for-llama-cpp",
-    "client/rust-app-logic",
 ]
 
 [workspace.dependencies]
@@ -31,8 +23,3 @@ tracing = "0.1"
 tracing-subscriber = "0.3"
 anyhow = "1.0"
 thiserror = "1.0"
-
-# CXX-Qt for Rust-QML integration (pinned version)
-cxx-qt = "0.7.2"
-cxx-qt-build = "0.7.2"
-cxx-qt-lib = "0.7.2"
