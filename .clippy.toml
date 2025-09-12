@@ -1,0 +1,34 @@
+# Clippy configuration for BunkerVerse Platform
+# Controls the behavior of clippy lints across the workspace
+
+# Documentation lints - be more lenient during development
+doc-valid-idents = [
+    "BunkerVerse", "MVP", "API", "gRPC", "NFT", "L3", "L2", "L1", 
+    "UE5", "Qt", "QML", "CXX", "FFI", "NAR", "AI", "PoC",
+    "JSON", "IPFS", "SDK", "CLI", "TLS", "HTTP", "WebSocket"
+]
+
+# Cognitive complexity threshold - increase for game logic
+cognitive-complexity-threshold = 50
+
+# Type complexity threshold 
+type-complexity-threshold = 250
+
+# Too many arguments threshold - game functions can be complex
+too-many-arguments-threshold = 10
+
+# Too many lines threshold for functions - allow larger game functions  
+too-many-lines-threshold = 150
+
+# Enum variant names threshold - allow descriptive game enum names
+enum-variant-name-threshold = 4
+
+# Single char binding names threshold - useful for coordinates, etc.
+single-char-binding-names-threshold = 5
+
+# Avoid breaking existing patterns
+avoid-breaking-exported-api = true
+
+# Allow certain patterns common in game development
+allow-expect-in-tests = true
+allow-unwrap-in-tests = true
