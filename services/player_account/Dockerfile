@@ -1,36 +1,45 @@
-# Dockerfile for Player Account Service
-FROM rust:1.80-slim as builder
+# Multi-stage Dockerfile for Player_account Service
+# Optimized for security and minimal size per Task 0.4 requirements
 
-WORKDIR /usr/src/app
+# Stage 1: Builder
+FROM rust:1.80.0-slim AS builder
 
-# Install system dependencies
+# Install build dependencies
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
+    protobuf-compiler \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the entire workspace first for dependency resolution
-COPY Cargo.toml Cargo.lock ./
-COPY services/player_account/Cargo.toml ./services/player_account/
+# Set working directory
+WORKDIR /usr/src/app
+
+# Copy workspace files for better caching
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
 COPY libs/ ./libs/
+COPY schemas/ ./schemas/
+COPY contracts/ ./contracts/
+COPY services/ ./services/
 
-# Copy source code
-COPY services/player_account/src ./services/player_account/src
+# Build the service in release mode
+RUN cargo build --release --bin player_account-service
 
-# Build the service
-RUN cargo build --release --package player-account-service
+# Stage 2: Runtime (minimal distroless image for security)
+FROM gcr.io/distroless/cc-debian12:nonroot
 
-# Runtime stage
-FROM debian:bookworm-slim
+# Copy the binary from builder
+COPY --from=builder --chown=nonroot:nonroot \
+    /usr/src/app/target/release/player_account-service /usr/local/bin/player_account-service
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+# Set non-root user (distroless nonroot has UID 65532)
+USER nonroot
 
-# Copy the binary
-COPY --from=builder /usr/src/app/target/release/player-account-service /usr/local/bin/player-account-service
+# Expose the service port
+EXPOSE 8083
 
-EXPOSE 3002
+# Health check endpoint
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD ["/usr/local/bin/player_account-service", "--health-check"]
 
-CMD ["player-account-service"]
+# Run the service
+ENTRYPOINT ["/usr/local/bin/player_account-service"]

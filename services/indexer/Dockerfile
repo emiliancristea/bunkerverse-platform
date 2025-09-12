@@ -1,36 +1,44 @@
-# Dockerfile for Indexer Service
-FROM rust:1.80-slim as builder
+# Multi-stage Dockerfile for Indexer Service
+# Optimized for security and minimal size per Task 0.4 requirements
 
-WORKDIR /usr/src/app
+# Stage 1: Builder
+FROM rust:1.80.0-slim AS builder
 
-# Install system dependencies
+# Install build dependencies
 RUN apt-get update && apt-get install -y \
     pkg-config \
     libssl-dev \
+    protobuf-compiler \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the entire workspace first
-COPY Cargo.toml Cargo.lock ./
-COPY services/indexer/Cargo.toml ./services/indexer/
+# Set working directory
+WORKDIR /usr/src/app
 
-# Create a minimal main.rs for the build context
-RUN mkdir -p services/indexer/src && \
-    echo 'fn main() { println!("Indexer service starting..."); }' > services/indexer/src/main.rs
+# Copy workspace files for better caching
+COPY Cargo.toml Cargo.lock rust-toolchain.toml ./
+COPY libs/ ./libs/
+COPY schemas/ ./schemas/
+COPY contracts/ ./contracts/
+COPY services/ ./services/
 
-# Build the service
-RUN cargo build --release --package indexer-service
+# Build the service in release mode
+RUN cargo build --release --bin indexer-service
 
-# Runtime stage  
-FROM debian:bookworm-slim
+# Stage 2: Runtime (minimal distroless image for security)
+FROM gcr.io/distroless/cc-debian12:nonroot
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
+# Copy the binary from builder
+COPY --from=builder --chown=nonroot:nonroot \
+    /usr/src/app/target/release/indexer-service /usr/local/bin/indexer-service
 
-# Copy the binary
-COPY --from=builder /usr/src/app/target/release/indexer-service /usr/local/bin/indexer-service
+# Set non-root user (distroless nonroot has UID 65532)
+USER nonroot
 
-EXPOSE 3003
+# Expose the service port
+EXPOSE 8080
 
-CMD ["indexer-service"]
+# Note: Health checks disabled for distroless (no shell)
+# Health checks should be configured in orchestration layer (k8s/docker-compose)
+
+# Run the service
+ENTRYPOINT ["/usr/local/bin/indexer-service"]
