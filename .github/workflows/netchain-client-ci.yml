@@ -1,0 +1,575 @@
+name: Netchain Client CI
+
+on:
+  push:
+    branches: [ develop ]
+    paths:
+      - 'client/**'
+      - 'libs/nar-rust-wrapper-for-llama-cpp/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - '.github/workflows/netchain-client-ci.yml'
+  pull_request:
+    branches: [ develop ]
+    paths:
+      - 'client/**'
+      - 'libs/nar-rust-wrapper-for-llama-cpp/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'rust-toolchain.toml'
+      - '.github/workflows/netchain-client-ci.yml'
+  workflow_dispatch:
+    inputs:
+      test_mode:
+        description: 'Run in test mode for validation'
+        required: false
+        default: 'false'
+        type: boolean
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+  QT_VERSION: '6.9.2'
+  QT_VERSION_SHORT: '6.9'
+
+jobs:
+  setup-environment:
+    name: Setup Environment
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    outputs:
+      rust-version: ${{ steps.toolchain.outputs.rust-version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Read Rust toolchain version
+        id: toolchain
+        shell: bash
+        run: |
+          RUST_VERSION=$(cat rust-toolchain.toml | grep channel | cut -d'"' -f2)
+          echo "rust-version=$RUST_VERSION" >> $GITHUB_OUTPUT
+          echo "Using Rust version: $RUST_VERSION"
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ steps.toolchain.outputs.rust-version }}
+          components: rustfmt, clippy
+      
+      - name: Install protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: '25.1'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Install cbindgen
+        run: cargo install --locked cbindgen
+      
+      - name: Setup Qt (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          # Install Qt 6.9.2 dependencies and tools
+          sudo apt-get install -y build-essential cmake ninja-build
+          sudo apt-get install -y libgl1-mesa-dev libvulkan-dev libxkbcommon-dev libxcb-xkb-dev
+          # Download and install Qt 6.9.2
+          wget -q https://download.qt.io/official_releases/qt/6.9/6.9.2/single/qt-everywhere-src-6.9.2.tar.xz
+          tar xf qt-everywhere-src-6.9.2.tar.xz
+          cd qt-everywhere-src-6.9.2
+          ./configure -prefix /opt/qt6 -opensource -confirm-license -nomake examples -nomake tests
+          cmake --build . --parallel
+          sudo cmake --install .
+          echo "QT_DIR=/opt/qt6" >> $GITHUB_ENV
+          echo "CMAKE_PREFIX_PATH=/opt/qt6" >> $GITHUB_ENV
+          echo "/opt/qt6/bin" >> $GITHUB_PATH
+      
+      - name: Setup Qt (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          # Install Qt 6.9.2 using aqt (Another Qt Installer)
+          pip install aqtinstall
+          aqt install-qt windows desktop 6.9.2 win64_msvc2022_64 -O C:\Qt
+          echo "QT_DIR=C:\Qt\6.9.2\msvc2022_64" >> $env:GITHUB_ENV
+          echo "CMAKE_PREFIX_PATH=C:\Qt\6.9.2\msvc2022_64" >> $env:GITHUB_ENV
+          echo "C:\Qt\6.9.2\msvc2022_64\bin" >> $env:GITHUB_PATH
+          choco install cmake ninja
+      
+      - name: Setup Qt (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          # Install Qt 6.9.2 using aqt
+          pip install aqtinstall
+          aqt install-qt mac desktop 6.9.2 clang_64 -O ~/Qt
+          echo "QT_DIR=$HOME/Qt/6.9.2/clang_64" >> $GITHUB_ENV
+          echo "CMAKE_PREFIX_PATH=$HOME/Qt/6.9.2/clang_64" >> $GITHUB_ENV
+          echo "$HOME/Qt/6.9.2/clang_64/bin" >> $GITHUB_PATH
+          brew install cmake ninja
+      
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/registry
+          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Cache Cargo index
+        uses: actions/cache@v4
+        with:
+          path: ~/.cargo/git
+          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Cache target directory
+        uses: actions/cache@v4
+        with:
+          path: target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+
+  lint-and-format-rust:
+    name: Lint and Format (Rust)
+    runs-on: ubuntu-latest
+    needs: setup-environment
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ needs.setup-environment.outputs.rust-version }}
+          components: rustfmt, clippy
+      
+      - name: Install protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: '25.1'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Restore Cargo cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Check Rust formatting (Client App Logic)
+        run: cargo fmt --manifest-path client/rust-app-logic/Cargo.toml -- --check
+      
+      - name: Check Rust formatting (NAR Library)
+        run: cargo fmt --manifest-path libs/nar-rust-wrapper-for-llama-cpp/Cargo.toml -- --check
+      
+      - name: Run Clippy (Client App Logic)
+        run: |
+          cargo clippy --manifest-path client/rust-app-logic/Cargo.toml --all-targets --all-features -- \
+            -D clippy::correctness \
+            -D clippy::suspicious \
+            -D clippy::complexity \
+            -W clippy::perf \
+            -W clippy::style \
+            -A clippy::cargo-common-metadata \
+            -A clippy::missing-errors-doc \
+            -A clippy::missing-panics-doc \
+            -A clippy::doc-markdown
+      
+      - name: Run Clippy (NAR Library)
+        run: |
+          cargo clippy --manifest-path libs/nar-rust-wrapper-for-llama-cpp/Cargo.toml --all-targets --all-features -- \
+            -D clippy::correctness \
+            -D clippy::suspicious \
+            -D clippy::complexity \
+            -W clippy::perf \
+            -W clippy::style \
+            -A clippy::cargo-common-metadata \
+            -A clippy::missing-errors-doc \
+            -A clippy::missing-panics-doc \
+            -A clippy::doc-markdown
+
+  lint-cpp:
+    name: Lint C++ Code
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format
+      
+      - name: Check C++ formatting (Client Shell)
+        run: |
+          if [ -d "client/cpp-shell" ]; then
+            find client/cpp-shell -name "*.cpp" -o -name "*.h" -o -name "*.hpp" | \
+            xargs clang-format --dry-run --Werror --style=file
+          else
+            echo "C++ shell directory not found, skipping C++ format check"
+          fi
+
+  build-nar-library:
+    name: Build NAR Library
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    needs: setup-environment
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ needs.setup-environment.outputs.rust-version }}
+      
+      - name: Install cbindgen
+        run: cargo install --locked cbindgen
+      
+      - name: Setup build environment (Ubuntu)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential cmake ninja-build
+      
+      - name: Setup build environment (Windows)
+        if: matrix.os == 'windows-latest'
+        run: choco install cmake ninja
+      
+      - name: Setup build environment (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install cmake ninja
+      
+      - name: Restore Cargo cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Build NAR Library
+        run: cargo build --manifest-path libs/nar-rust-wrapper-for-llama-cpp/Cargo.toml --release
+      
+      - name: Generate C FFI headers with cbindgen
+        run: |
+          cd libs/nar-rust-wrapper-for-llama-cpp
+          cbindgen --config cbindgen.toml --crate nar-rust-wrapper-for-llama-cpp --output nar_ffi.h
+      
+      - name: Upload NAR library artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: nar-library-${{ matrix.os }}
+          path: |
+            target/release/libnar_rust_wrapper_for_llama_cpp*
+            libs/nar-rust-wrapper-for-llama-cpp/nar_ffi.h
+
+  build-client-app-logic:
+    name: Build Client App Logic
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    needs: setup-environment
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ needs.setup-environment.outputs.rust-version }}
+      
+      - name: Install protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: '25.1'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Setup Qt environment
+        shell: bash
+        run: |
+          case "${{ matrix.os }}" in
+            ubuntu-latest)
+              # Qt 6.9.2 should already be installed from setup-environment job
+              export QT_DIR="/opt/qt6"
+              export CMAKE_PREFIX_PATH="/opt/qt6"
+              ;;
+            windows-latest)
+              # Qt 6.9.2 should already be installed from setup-environment job
+              export QT_DIR="C:/Qt/6.9.2/msvc2022_64"
+              export CMAKE_PREFIX_PATH="C:/Qt/6.9.2/msvc2022_64"
+              ;;
+            macos-latest)
+              # Qt 6.9.2 should already be installed from setup-environment job
+              export QT_DIR="$HOME/Qt/6.9.2/clang_64"
+              export CMAKE_PREFIX_PATH="$HOME/Qt/6.9.2/clang_64"
+              ;;
+          esac
+      
+      - name: Restore Cargo cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Build Client App Logic (CXX-Qt)
+        run: cargo build --manifest-path client/rust-app-logic/Cargo.toml --release
+      
+      - name: Upload client app logic artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-app-logic-${{ matrix.os }}
+          path: |
+            target/release/libclient_rust_app_logic*
+            target/cxx-qt-gen/
+
+  security-scans-rust:
+    name: Security Scans (Rust)
+    runs-on: ubuntu-latest
+    needs: setup-environment
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ needs.setup-environment.outputs.rust-version }}
+      
+      - name: Install cargo-audit
+        run: cargo install --locked cargo-audit
+      
+      - name: Install cargo-deny
+        run: cargo install --locked cargo-deny
+      
+      - name: Run dependency vulnerability scan (Client App Logic)
+        run: |
+          cd client/rust-app-logic
+          cargo audit --deny warnings --deny unmaintained --deny unsound --deny yanked
+      
+      - name: Run dependency vulnerability scan (NAR Library)
+        run: |
+          cd libs/nar-rust-wrapper-for-llama-cpp
+          cargo audit --deny warnings --deny unmaintained --deny unsound --deny yanked
+      
+      - name: Run license compliance check (Client App Logic)
+        run: |
+          cd client/rust-app-logic
+          cargo deny check license ban
+      
+      - name: Run license compliance check (NAR Library)
+        run: |
+          cd libs/nar-rust-wrapper-for-llama-cpp
+          cargo deny check license ban
+
+  security-scans-cpp:
+    name: Security Scans (C++)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install cppcheck
+        run: sudo apt-get update && sudo apt-get install -y cppcheck
+      
+      - name: Run cppcheck on C++ shell
+        run: |
+          if [ -d "client/cpp-shell" ]; then
+            cppcheck --enable=all --error-exitcode=1 --std=c++17 \
+              --suppress=missingIncludeSystem \
+              --inline-suppr \
+              client/cpp-shell/
+          else
+            echo "C++ shell directory not found, skipping cppcheck"
+          fi
+
+  lint-qml:
+    name: Lint QML Files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Qt for QML linting
+        run: |
+          # Install Qt 6.9.2 for QML linting
+          pip install aqtinstall
+          aqt install-qt linux desktop 6.9.2 gcc_64 -O /opt/qt6
+          export PATH="/opt/qt6/6.9.2/gcc_64/bin:$PATH"
+      
+      - name: Run qmllint on QML files
+        run: |
+          if [ -d "client/qml-ui" ]; then
+            find client/qml-ui -name "*.qml" -exec qmllint {} \; || true
+            echo "QML linting completed (warnings allowed for now)"
+          else
+            echo "QML UI directory not found, skipping QML lint check"
+          fi
+
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    needs: setup-environment
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: ${{ needs.setup-environment.outputs.rust-version }}
+      
+      - name: Install protoc
+        uses: arduino/setup-protoc@v3
+        with:
+          version: '25.1'
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Restore Cargo cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
+      
+      - name: Run unit tests (Client App Logic)
+        run: cargo test --manifest-path client/rust-app-logic/Cargo.toml --release
+      
+      - name: Run unit tests (NAR Library)
+        run: cargo test --manifest-path libs/nar-rust-wrapper-for-llama-cpp/Cargo.toml --release
+
+  package-installers:
+    name: Package Client Installers
+    runs-on: ${{ matrix.os }}
+    needs: [build-nar-library, build-client-app-logic]
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download NAR library artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: nar-library-${{ matrix.os }}
+          path: artifacts/nar-library
+      
+      - name: Download client app logic artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: client-app-logic-${{ matrix.os }}
+          path: artifacts/client-app-logic
+      
+      - name: Package Windows installer
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "Packaging Windows installer (.exe)"
+          # TODO: Implement WiX or NSIS packaging once C++ shell is ready
+          # For now, create a placeholder zip
+          mkdir -p dist
+          echo "BunkerVerse Control Center Windows Installer" > dist/README.txt
+          echo "Version: ${{ github.sha }}" >> dist/README.txt
+          # When ready, use: 
+          # choco install wixtoolset
+          # candle.exe installer.wxs
+          # light.exe installer.wixobj
+      
+      - name: Package macOS installer
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "Packaging macOS installer (.dmg)"
+          # TODO: Implement .dmg or .pkg packaging once C++ shell is ready
+          # For now, create a placeholder
+          mkdir -p dist
+          echo "BunkerVerse Control Center macOS Installer" > dist/README.txt
+          echo "Version: ${{ github.sha }}" >> dist/README.txt
+          # When ready, use:
+          # create-dmg --volname "BunkerVerse Control Center" \
+          #   --window-size 800 400 \
+          #   --icon-size 100 \
+          #   --app-drop-link 600 185 \
+          #   "dist/BunkerVerse-Control-Center.dmg" \
+          #   "build/BunkerVerse Control Center.app"
+      
+      - name: Package Linux installer
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          echo "Packaging Linux installer (.AppImage)"
+          # TODO: Implement AppImage packaging once C++ shell is ready
+          # For now, create a placeholder
+          mkdir -p dist
+          echo "BunkerVerse Control Center Linux Installer" > dist/README.txt
+          echo "Version: ${{ github.sha }}" >> dist/README.txt
+          # When ready, use:
+          # wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          # chmod +x linuxdeploy-x86_64.AppImage
+          # ./linuxdeploy-x86_64.AppImage --appdir AppDir \
+          #   --executable target/release/bunkerverse-control-center \
+          #   --desktop-file bunkerverse-control-center.desktop \
+          #   --icon-file icon.png \
+          #   --output appimage
+      
+      - name: Upload installer artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.os }}
+          path: dist/
+
+  status-check:
+    name: All Client Checks Complete
+    runs-on: ubuntu-latest
+    needs: [lint-and-format-rust, lint-cpp, lint-qml, build-nar-library, build-client-app-logic, security-scans-rust, security-scans-cpp, unit-tests]
+    if: always()
+    steps:
+      - name: Check if all jobs succeeded
+        run: |
+          if [[ "${{ needs.lint-and-format-rust.result }}" == "success" && \
+                "${{ needs.lint-cpp.result }}" == "success" && \
+                "${{ needs.lint-qml.result }}" == "success" && \
+                "${{ needs.build-nar-library.result }}" == "success" && \
+                "${{ needs.build-client-app-logic.result }}" == "success" && \
+                "${{ needs.security-scans-rust.result }}" == "success" && \
+                "${{ needs.security-scans-cpp.result }}" == "success" && \
+                "${{ needs.unit-tests.result }}" == "success" ]]; then
+            echo "All client CI checks passed!"
+            exit 0
+          else
+            echo "One or more client CI checks failed!"
+            exit 1
+          fi
+      
+      # Send notification on failure for develop/main branches
+      - name: Send failure notification
+        if: failure() && (github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/main')
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const failed_jobs = [];
+            if ('${{ needs.lint-and-format-rust.result }}' != 'success') failed_jobs.push('lint-and-format-rust');
+            if ('${{ needs.lint-cpp.result }}' != 'success') failed_jobs.push('lint-cpp');
+            if ('${{ needs.lint-qml.result }}' != 'success') failed_jobs.push('lint-qml');
+            if ('${{ needs.build-nar-library.result }}' != 'success') failed_jobs.push('build-nar-library');
+            if ('${{ needs.build-client-app-logic.result }}' != 'success') failed_jobs.push('build-client-app-logic');
+            if ('${{ needs.security-scans-rust.result }}' != 'success') failed_jobs.push('security-scans-rust');
+            if ('${{ needs.security-scans-cpp.result }}' != 'success') failed_jobs.push('security-scans-cpp');
+            if ('${{ needs.unit-tests.result }}' != 'success') failed_jobs.push('unit-tests');
+            
+            // Create an issue for critical branch failures
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚨 Client CI Failed on ${context.ref}`,
+              body: `## CI Pipeline Failure Alert\n\n**Branch**: ${context.ref}\n**Workflow**: Client CI\n**Failed Jobs**: ${failed_jobs.join(', ')}\n**Run**: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\n### Action Required\nPlease investigate and fix the failing CI checks immediately.`,
+              labels: ['ci-failure', 'urgent', 'client']
+            });
