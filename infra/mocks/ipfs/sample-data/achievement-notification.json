@@ -1,0 +1,49 @@
+{
+  "achievement": {
+    "id": "first_victory",
+    "title": "First Victory",
+    "description": "Congratulations! You have achieved your first victory in the Bunkerverse.",
+    "category": "milestone",
+    "rarity": "common",
+    "points": 100,
+    "unlocked_at": "2024-01-15T14:22:30Z"
+  },
+  "rewards": [
+    {
+      "type": "experience",
+      "amount": 500,
+      "description": "Bonus experience points"
+    },
+    {
+      "type": "currency",
+      "amount": 250,
+      "currency_type": "BVT",
+      "description": "Bunkerverse tokens"
+    },
+    {
+      "type": "item",
+      "item_id": "starter_weapon_pack",
+      "rarity": "common",
+      "description": "Starter weapon pack with basic gear"
+    }
+  ],
+  "next_milestone": {
+    "achievement_id": "veteran_player",
+    "title": "Veteran Player",
+    "requirement": "Win 10 battles",
+    "current_progress": 1,
+    "required_progress": 10
+  },
+  "player_stats": {
+    "total_achievements": 1,
+    "total_points": 100,
+    "player_level": 2,
+    "next_level_xp_required": 1000
+  },
+  "message": "You're off to a great start, Commander! Keep pushing forward to unlock more powerful gear and abilities.",
+  "platform_info": {
+    "service": "Bunkerverse Achievement System",
+    "version": "1.0.0",
+    "timestamp": "2024-01-15T14:22:30Z"
+  }
+}

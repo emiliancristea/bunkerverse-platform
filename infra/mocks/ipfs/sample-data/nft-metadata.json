@@ -1,0 +1,41 @@
+{
+  "name": "Bunkerverse Legendary Weapon",
+  "description": "A rare weapon forged in the digital depths of the Bunkerverse. This legendary item possesses unique properties that can only be unlocked by true warriors of the platform.",
+  "image": "ipfs://QmSampleImageHash123456789abcdef",
+  "external_url": "https://bunkerverse.io/items/legendary-weapon",
+  "animation_url": "ipfs://QmSampleAnimationHash987654321fedcba",
+  "attributes": [
+    {
+      "trait_type": "Weapon Class",
+      "value": "Legendary"
+    },
+    {
+      "trait_type": "Rarity",
+      "value": "Ultra Rare"
+    },
+    {
+      "trait_type": "Attack Power",
+      "value": 250
+    },
+    {
+      "trait_type": "Durability",
+      "value": 95
+    },
+    {
+      "trait_type": "Element",
+      "value": "Quantum"
+    },
+    {
+      "trait_type": "Set Bonus",
+      "value": "Quantum Resonance"
+    }
+  ],
+  "properties": {
+    "generation": 1,
+    "edition": "Genesis",
+    "creator": "Bunkerverse Studio",
+    "blockchain": "Arbitrum"
+  },
+  "compiler": "Bunkerverse NFT Generator v1.0",
+  "date": "2024-01-15T10:30:00Z"
+}
