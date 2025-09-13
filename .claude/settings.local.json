@@ -101,7 +101,9 @@
       "Bash(timeout 60s docker build:*)",
       "Bash(timeout 60s cargo check --bin ai-data-service)",
       "Bash(do echo \"Updating $dockerfile...\")",
-      "Bash(timeout 300 docker build -f infra/dockerfiles/ai_data/Dockerfile -t test-ai-data-fixed .)"
+      "Bash(timeout 300 docker build -f infra/dockerfiles/ai_data/Dockerfile -t test-ai-data-fixed .)",
+      "Bash(timeout 60s cargo build --bin ai-data-service)",
+      "Bash(timeout 300 docker build -f infra/dockerfiles/ai_data/Dockerfile -t test-ai-data .)"
     ],
     "deny": [],
     "ask": []

@@ -11,7 +11,7 @@ fn main() {
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
 
     // Create a mock header for bindgen
-    let mock_header = r#"
+    let mock_header = r"
 typedef struct llama_context llama_context;
 typedef struct llama_model llama_model;
 
@@ -58,7 +58,7 @@ const char* llama_token_to_piece(llama_context* ctx, llama_token token);
 int llama_n_ctx(llama_context* ctx);
 int llama_n_embd(llama_context* ctx);
 int llama_n_vocab(llama_context* ctx);
-"#;
+";
 
     std::fs::write(out_path.join("llama_mock.h"), mock_header).unwrap();
 

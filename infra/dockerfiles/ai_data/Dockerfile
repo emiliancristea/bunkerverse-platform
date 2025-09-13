@@ -50,6 +50,9 @@ RUN mkdir -p libs/common-rust/src && echo "fn main() {}" > libs/common-rust/src/
 RUN mkdir -p libs/nar-rust-wrapper-for-llama-cpp/src && echo "fn main() {}" > libs/nar-rust-wrapper-for-llama-cpp/src/lib.rs
 RUN mkdir -p client/rust-app-logic/src && echo "fn main() {}" > client/rust-app-logic/src/lib.rs
 
+# Copy build script first for proto compilation
+COPY services/ai_data/build.rs ./services/ai_data/build.rs
+
 # Pre-build dependencies (this layer will be cached)
 RUN cargo build --release --bin ai-data-service
 
