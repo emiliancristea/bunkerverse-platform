@@ -1,0 +1,5 @@
+# CI Trigger File
+
+This file is used to trigger GitHub Actions workflow runs and verify that all required files are present in the repository for successful builds and proto generation.
+
+Date: September 13, 2025
