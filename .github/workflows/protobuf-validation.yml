@@ -40,20 +40,42 @@ jobs:
         if: github.event_name == 'pull_request'
         run: buf breaking --against 'https://github.com/${{ github.repository }}.git#branch=develop'
 
-  # Code generation disabled - requires additional plugin setup
-  # proto-generate:
-  #   name: Generate and Validate Code
-  #   runs-on: ubuntu-latest
-  #   needs: proto-lint
-  #   steps:
-  #     - name: Checkout code  
-  #       uses: actions/checkout@v4
-  #     - name: Setup buf CLI
-  #       uses: bufbuild/buf-setup-action@v1
-  #       with:
-  #         github_token: ${{ github.token }}
-  #     - name: Generate protobuf code
-  #       run: buf generate
+  proto-generate:
+    name: Generate and Validate Code
+    runs-on: ubuntu-latest
+    needs: proto-lint
+    steps:
+      - name: Checkout code  
+        uses: actions/checkout@v4
+
+      - name: Setup protoc
+        uses: arduino/setup-protoc@v2
+        with:
+          version: '3.x'
+          repo-token: ${{ github.token }}
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          components: rustfmt, clippy
+
+      - name: Setup buf CLI
+        uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ github.token }}
+
+      - name: Generate protobuf code
+        run: |
+          # Install tonic-build dependencies
+          cargo install protoc-gen-tonic
+          
+          # Generate code using buf
+          buf generate
+          
+          # Build all services to verify generated code
+          cargo build --workspace
 
   schema-validation:
     name: Schema Validation & Security Check
