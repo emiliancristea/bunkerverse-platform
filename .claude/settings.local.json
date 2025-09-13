@@ -96,7 +96,12 @@
       "Bash(timeout 60 cargo build)",
       "Bash(timeout 300s docker build -f infra/dockerfiles/marketplace/Dockerfile -t test-marketplace .)",
       "Bash(timeout 60s cargo check --bin marketplace-service)",
-      "Bash(xargs clang-format:*)"
+      "Bash(xargs clang-format:*)",
+      "Bash(pkill:*)",
+      "Bash(timeout 60s docker build:*)",
+      "Bash(timeout 60s cargo check --bin ai-data-service)",
+      "Bash(do echo \"Updating $dockerfile...\")",
+      "Bash(timeout 300 docker build -f infra/dockerfiles/ai_data/Dockerfile -t test-ai-data-fixed .)"
     ],
     "deny": [],
     "ask": []
