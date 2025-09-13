@@ -33,7 +33,6 @@ anyhow = "1.0"
 
 # gRPC dependencies
 tonic = "0.10"
-tonic-build = "0.10"
 prost = "0.12"
 prost-types = "0.12"
 futures-util = "0.3"

@@ -312,7 +312,7 @@ pub async fn get_models(
 
 pub async fn train_model(
     State(state): State<AppState>,
-    Json(request): Json<ModelTrainingRequest>,
+    Json(_request): Json<ModelTrainingRequest>,
 ) -> Result<Json<TrainingResponse>, (StatusCode, Json<ErrorResponse>)> {
     let context = state.create_context(None).await;
     let stub = state.stub.lock().await;
