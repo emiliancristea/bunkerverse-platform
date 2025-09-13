@@ -22,6 +22,7 @@ WORKDIR /build
 # Copy workspace files for dependency resolution
 COPY Cargo.toml ./Cargo.toml
 COPY Cargo.lock ./
+COPY schemas/ ./schemas/
 COPY contracts/Cargo.toml ./contracts/Cargo.toml
 COPY libs/common-rust/Cargo.toml ./libs/common-rust/Cargo.toml
 COPY libs/nar-rust-wrapper-for-llama-cpp/Cargo.toml ./libs/nar-rust-wrapper-for-llama-cpp/Cargo.toml
