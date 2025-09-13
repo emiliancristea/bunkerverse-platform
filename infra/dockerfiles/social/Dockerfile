@@ -7,7 +7,7 @@
 FROM rust:1.80-alpine AS builder
 
 # Install build dependencies
-RUN apk add --no-cache     musl-dev     pkgconfig     openssl-dev     openssl-libs-static
+RUN apk add --no-cache     musl-dev     pkgconfig     openssl-dev     openssl-libs-static     protobuf-dev     protoc
 
 # Create app user for build
 RUN adduser --disabled-password --gecos "" --home "/nonexistent" --shell "/sbin/nologin" --no-create-home --uid 10001 appuser
