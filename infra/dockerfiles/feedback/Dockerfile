@@ -18,6 +18,10 @@ WORKDIR /build
 # Copy workspace files for dependency resolution
 COPY Cargo.toml ./
 COPY Cargo.lock ./
+COPY contracts/Cargo.toml ./contracts/Cargo.toml
+COPY libs/common-rust/Cargo.toml ./libs/common-rust/Cargo.toml
+COPY libs/nar-rust-wrapper-for-llama-cpp/Cargo.toml ./libs/nar-rust-wrapper-for-llama-cpp/Cargo.toml
+COPY client/rust-app-logic/Cargo.toml ./client/rust-app-logic/Cargo.toml
 COPY services/identity/Cargo.toml ./services/identity/Cargo.toml
 COPY services/account/Cargo.toml ./services/account/Cargo.toml
 COPY services/marketplace/Cargo.toml ./services/marketplace/Cargo.toml
@@ -30,6 +34,10 @@ COPY services/indexer/Cargo.toml ./services/indexer/Cargo.toml
 COPY services/ipfs-mock/Cargo.toml ./services/ipfs-mock/Cargo.toml
 
 # Create placeholder workspace structure for dependency pre-build for all services
+RUN mkdir -p contracts/src && echo "fn main() {}" > contracts/src/lib.rs
+RUN mkdir -p libs/common-rust/src && echo "fn main() {}" > libs/common-rust/src/lib.rs
+RUN mkdir -p libs/nar-rust-wrapper-for-llama-cpp/src && echo "fn main() {}" > libs/nar-rust-wrapper-for-llama-cpp/src/lib.rs
+RUN mkdir -p client/rust-app-logic/src && echo "fn main() {}" > client/rust-app-logic/src/lib.rs
 RUN mkdir -p services/identity/src && echo "fn main() {}" > services/identity/src/main.rs
 RUN mkdir -p services/account/src && echo "fn main() {}" > services/account/src/main.rs
 RUN mkdir -p services/marketplace/src && echo "fn main() {}" > services/marketplace/src/main.rs
