@@ -20,7 +20,20 @@ pub mod bunkerverse {
     }
 }
 
-use bunkerverse::services::v1::{ai_data_service_server::AiDataService, *};
+use bunkerverse::services::v1::{
+    ai_data_service_server::AiDataService, 
+    *,
+    // Import nested module types for response enums
+    optimize_context_generation_response,
+    get_lore_database_response,
+    update_player_lore_progress_response,
+    get_context_templates_response,
+    get_narrative_history_response,
+    update_narrative_preferences_response,
+    record_narrative_interaction_response,
+    get_narrative_analytics_response,
+    request_narrative_generation_response,
+};
 
 pub struct AiDataGrpcService {
     stub: Arc<tokio::sync::Mutex<AiDataStub>>,
