@@ -1,7 +1,26 @@
-fn main() {
-    // Note: feedback service doesn't have a protobuf definition yet
-    // This is a placeholder for when it's added
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // Protobuf build configuration for feedback service
+    tonic_build::configure()
+        .build_server(true)
+        .build_client(true)
+        .compile(
+            &[
+                "../../schemas/proto/bunkerverse/services/v1/health_service.proto",
+                "../../schemas/proto/bunkerverse/core/v1/types.proto",
+                "../../schemas/proto/bunkerverse/core/v1/enums.proto",
+                "../../schemas/proto/bunkerverse/core/v1/events.proto",
+                "../../schemas/proto/bunkerverse/core/v1/transactions.proto",
+            ],
+            &["../../schemas/proto"],
+        )?;
+
     println!(
-        "cargo:warning=Feedback service protobuf definition not found, skipping gRPC generation"
+        "cargo:rerun-if-changed=../../schemas/proto/bunkerverse/services/v1/health_service.proto"
     );
+    println!("cargo:rerun-if-changed=../../schemas/proto/bunkerverse/core/v1/types.proto");
+    println!("cargo:rerun-if-changed=../../schemas/proto/bunkerverse/core/v1/enums.proto");
+    println!("cargo:rerun-if-changed=../../schemas/proto/bunkerverse/core/v1/events.proto");
+    println!("cargo:rerun-if-changed=../../schemas/proto/bunkerverse/core/v1/transactions.proto");
+
+    Ok(())
 }
