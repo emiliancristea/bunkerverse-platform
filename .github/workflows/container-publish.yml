@@ -31,13 +31,13 @@ jobs:
           - indexer
           - marketplace
           - identity
-          - player_account
           - ai_data
           - account
           - feedback
           - mission
           - payment
           - social
+          - ipfs-mock
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -89,7 +89,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: services/${{ matrix.service }}/Dockerfile
+          file: infra/dockerfiles/${{ matrix.service }}/Dockerfile
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.service }}:${{ github.sha }}
@@ -164,7 +164,7 @@ jobs:
       
       - name: Create and push manifest list
         run: |
-          SERVICES=(indexer marketplace identity player_account ai_data account feedback mission payment social)
+          SERVICES=(indexer marketplace identity ai_data account feedback mission payment social ipfs-mock)
           for SERVICE in "${SERVICES[@]}"; do
             docker manifest create \
               ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${SERVICE}:latest \

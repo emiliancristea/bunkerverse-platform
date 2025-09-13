@@ -169,10 +169,10 @@ jobs:
           toolchain: ${{ needs.setup-environment.outputs.rust-version }}
       
       - name: Install cargo-audit
-        run: cargo install --locked cargo-audit
+        run: cargo install --locked cargo-audit --version 0.21.1
       
       - name: Install cargo-deny
-        run: cargo install --locked cargo-deny
+        run: cargo install --locked cargo-deny --version 0.14.24
       
       - name: Run dependency vulnerability scan
         run: cargo audit --deny warnings --deny unmaintained --deny unsound --deny yanked

@@ -2,6 +2,12 @@
 name = "ai-data-service"
 version = "0.1.0"
 edition = "2021"
+description = "AI data processing service for BUNKERVERSE Platform - handles AI training data, model management, and inference services"
+license = "MIT"
+repository = "https://github.com/emiliancristea/bunkerverse-platform"
+readme = "README.md"
+keywords = ["bunkerverse", "ai", "data", "machine-learning", "gaming"]
+categories = ["games", "science", "web-programming"]
 
 [[bin]]
 name = "ai-data-service"

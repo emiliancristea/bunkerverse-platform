@@ -2,6 +2,12 @@
 name = "payment-service"
 version = "0.1.0"
 edition = "2021"
+description = "Payment processing service for BUNKERVERSE Platform - handles transactions, billing, and financial operations"
+license = "MIT"
+repository = "https://github.com/emiliancristea/bunkerverse-platform"
+readme = "README.md"
+keywords = ["bunkerverse", "payments", "transactions", "billing", "gaming"]
+categories = ["games", "web-programming"]
 
 [[bin]]
 name = "payment-service"

@@ -21,7 +21,7 @@ use stub::{IndexerStub, RequestContext, SmartStub};
 use tokio::signal;
 use tonic::transport::Server;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
-use tracing::{info, Level};
+use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 use uuid::Uuid;
 
@@ -517,7 +517,9 @@ async fn main() -> Result<()> {
         .serve_with_shutdown(grpc_addr, shutdown_signal());
 
     // Use tokio::try_join to run both servers concurrently
-    tokio::try_join!(http_server, grpc_server)?;
+    let (http_result, grpc_result) = tokio::join!(http_server, grpc_server);
+    http_result?;
+    grpc_result?;
 
     Ok(())
 }

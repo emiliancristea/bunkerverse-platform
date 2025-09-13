@@ -22,7 +22,8 @@ mod tests {
     use super::*;
 
     #[test]
+    #[allow(clippy::const_is_empty)]
     fn test_version_exists() {
-        assert!(!VERSION.is_empty());
+        assert!(!VERSION.is_empty(), "VERSION should not be empty");
     }
 }

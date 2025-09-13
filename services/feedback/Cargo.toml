@@ -2,6 +2,12 @@
 name = "feedback-service"
 version = "0.1.0"
 edition = "2021"
+description = "Feedback collection service for BUNKERVERSE Platform - handles player feedback, reviews, and community input"
+license = "MIT"
+repository = "https://github.com/emiliancristea/bunkerverse-platform"
+readme = "README.md"
+keywords = ["bunkerverse", "feedback", "reviews", "community", "gaming"]
+categories = ["games", "web-programming"]
 
 [[bin]]
 name = "feedback-service"

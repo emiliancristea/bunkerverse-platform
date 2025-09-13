@@ -2,6 +2,12 @@
 name = "marketplace-service"
 version = "0.1.0"
 edition = "2021"
+description = "NFT marketplace service for BUNKERVERSE Platform - handles NFT trading, auctions, and marketplace operations"
+license = "MIT"
+repository = "https://github.com/emiliancristea/bunkerverse-platform"
+readme = "README.md"
+keywords = ["bunkerverse", "marketplace", "nft", "trading", "gaming"]
+categories = ["games", "cryptocurrency", "web-programming"]
 
 [[bin]]
 name = "marketplace-service"

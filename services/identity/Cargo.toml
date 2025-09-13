@@ -2,6 +2,12 @@
 name = "identity-service"
 version = "0.1.0"
 edition = "2021"
+description = "Identity management service for BUNKERVERSE Platform - handles player identity verification, authentication tokens, and session management"
+license = "MIT"
+repository = "https://github.com/emiliancristea/bunkerverse-platform"
+readme = "README.md"
+keywords = ["bunkerverse", "identity", "authentication", "security", "gaming"]
+categories = ["games", "authentication", "web-programming"]
 
 [[bin]]
 name = "identity-service"

@@ -4,7 +4,6 @@ use anyhow::Result;
 use chrono::Utc;
 use std::sync::Arc;
 use tonic::{Request, Response, Status};
-use tracing::info;
 use uuid::Uuid;
 
 // Include the generated protobuf code
@@ -21,7 +20,22 @@ pub mod bunkerverse {
     }
 }
 
-use bunkerverse::services::v1::*;
+// Import all necessary types from generated protobuf modules
+use bunkerverse::services::v1::{
+    cancel_listing_response, create_listing_response, execute_trade_intent_response,
+    get_listing_details_response, get_market_listings_response, get_nft_details_response,
+    get_player_owned_nfts_response, marketplace_service_server, search_marketplace_response,
+    CancelListingRequest, CancelListingResponse, CancelListingSuccess, CreateListingRequest,
+    CreateListingResponse, CreateListingSuccess, ExecuteTradeIntentRequest,
+    ExecuteTradeIntentResponse, ExecuteTradeIntentSuccess, GetListingDetailsRequest,
+    GetListingDetailsResponse, GetMarketListingsRequest, GetMarketListingsResponse,
+    GetMarketListingsSuccess, GetNftDetailsRequest, GetNftDetailsResponse,
+    GetPlayerOwnedNftsRequest, GetPlayerOwnedNftsResponse, GetPlayerOwnedNftsSuccess,
+    GetTransactionReceiptRequest, HealthRequest, HealthResponse, InventoryStatsProto,
+    MarketAnalyticsProto, MarketListingDetailProto, MarketListingProto, MarketStatsProto,
+    NftDetailsResponseProto, PlayerOwnedNftProto, SearchMarketplaceRequest,
+    SearchMarketplaceResponse, SearchMarketplaceSuccess,
+};
 
 pub struct MarketplaceGrpcService {
     stub: Arc<tokio::sync::Mutex<MarketplaceStub>>,
@@ -67,6 +81,67 @@ impl MarketplaceGrpcService {
         stub.log_response(context, method, latency.as_millis() as u64, 200, false);
         Ok(())
     }
+
+    fn create_mock_nft_details(
+        nft_id: &str,
+        enable_crypto: bool,
+    ) -> bunkerverse::core::v1::NftDetailsProto {
+        bunkerverse::core::v1::NftDetailsProto {
+            identifier: Some(bunkerverse::core::v1::NftIdentifierProto {
+                nft_id: nft_id.to_string(),
+                token_id: 1,
+                contract_address: if enable_crypto {
+                    "0xabcdef1234567890".to_string()
+                } else {
+                    "".to_string()
+                },
+            }),
+            item_type: bunkerverse::core::v1::ItemTypeProto::Head as i32,
+            item_rarity: bunkerverse::core::v1::ItemRarityProto::Advanced as i32,
+            base_stat_boosts: Some(bunkerverse::core::v1::CoreStatsProto {
+                damage: 100,
+                accuracy: 80,
+                critical_chance: 20,
+                armor_piercing: 30,
+                speed: 50,
+                agility: 60,
+                stealth: 40,
+                evasion: 70,
+                health: 200,
+                shield: 150,
+                detection: 80,
+                range: 90,
+                combat_average: 57,
+                mobility_average: 55,
+                survivability_average: 175,
+                sensors_average: 85,
+            }),
+            class_affinities: vec![bunkerverse::core::v1::BunkerClassProto::Explorer as i32],
+            trait_affiliation: bunkerverse::core::v1::ClassAffiliationProto::Loyal as i32,
+            construct_origin: "Factory Alpha".to_string(),
+            metadata_pointer_uri: "Qm123456789abcdefghijklmnopqrstuvwxyzABCDEFGH".to_string(),
+            schema_version: 1,
+            created_timestamp: Utc::now().timestamp(),
+        }
+    }
+
+    fn create_mock_nft_state(
+        player_id: &str,
+        enable_crypto: bool,
+    ) -> bunkerverse::core::v1::NftMutableStateProto {
+        bunkerverse::core::v1::NftMutableStateProto {
+            current_owner_id: player_id.to_string(),
+            current_condition: bunkerverse::core::v1::ItemConditionProto::NewState as i32,
+            is_soulbound: false,
+            market_status: bunkerverse::core::v1::MarketStatusProto::ListedForSale as i32,
+            market_price_ntc: if enable_crypto {
+                1000000000000000000u64
+            } else {
+                100
+            },
+            last_updated_timestamp: Utc::now().timestamp(),
+        }
+    }
 }
 
 #[tonic::async_trait]
@@ -90,28 +165,8 @@ impl marketplace_service_server::MarketplaceService for MarketplaceGrpcService {
         let listings = if context.enable_crypto {
             vec![MarketListingProto {
                 listing_id: "listing_001".to_string(),
-                nft_details: Some(bunkerverse::core::v1::NftDetailsProto {
-                    nft_id: "nft_001".to_string(),
-                    token_id: "1".to_string(),
-                    contract_address: "0xabcdef1234567890".to_string(),
-                    name: "Epic Weapon NFT".to_string(),
-                    description: "A legendary weapon".to_string(),
-                    image_url: "https://example.com/nft.png".to_string(),
-                    metadata_json: "{}".to_string(),
-                    item_type: bunkerverse::core::v1::ItemTypeProto::Weapon as i32,
-                    item_rarity: bunkerverse::core::v1::ItemRarityProto::Epic as i32,
-                    item_condition: bunkerverse::core::v1::ItemConditionProto::Excellent as i32,
-                    mint_timestamp: Utc::now().timestamp(),
-                    creator_address: "0x1234567890abcdef".to_string(),
-                }),
-                nft_state: Some(bunkerverse::core::v1::NftMutableStateProto {
-                    nft_id: "nft_001".to_string(),
-                    current_owner_id: "player_123".to_string(),
-                    market_status: bunkerverse::core::v1::MarketStatusProto::ListedForSale as i32,
-                    equipped_robot_id: None,
-                    last_transaction_hash: Some("0xmocktxhash123".to_string()),
-                    last_updated_timestamp: Utc::now().timestamp(),
-                }),
+                nft_details: Some(Self::create_mock_nft_details("nft_001", true)),
+                nft_state: Some(Self::create_mock_nft_state("player_123", true)),
                 seller_player_id: "player_123".to_string(),
                 seller_bunker_tag: "TestSeller".to_string(),
                 listing_price_ntc_wei: 1000000000000000000u64, // 1 NTC
@@ -125,28 +180,8 @@ impl marketplace_service_server::MarketplaceService for MarketplaceGrpcService {
         } else {
             vec![MarketListingProto {
                 listing_id: "listing_001".to_string(),
-                nft_details: Some(bunkerverse::core::v1::NftDetailsProto {
-                    nft_id: "item_001".to_string(),
-                    token_id: "1".to_string(),
-                    contract_address: "".to_string(),
-                    name: "Basic Sword".to_string(),
-                    description: "A basic sword item".to_string(),
-                    image_url: "https://example.com/sword.png".to_string(),
-                    metadata_json: "{}".to_string(),
-                    item_type: bunkerverse::core::v1::ItemTypeProto::Weapon as i32,
-                    item_rarity: bunkerverse::core::v1::ItemRarityProto::Common as i32,
-                    item_condition: bunkerverse::core::v1::ItemConditionProto::Good as i32,
-                    mint_timestamp: Utc::now().timestamp(),
-                    creator_address: "system".to_string(),
-                }),
-                nft_state: Some(bunkerverse::core::v1::NftMutableStateProto {
-                    nft_id: "item_001".to_string(),
-                    current_owner_id: "player_456".to_string(),
-                    market_status: bunkerverse::core::v1::MarketStatusProto::ListedForSale as i32,
-                    equipped_robot_id: None,
-                    last_transaction_hash: None,
-                    last_updated_timestamp: Utc::now().timestamp(),
-                }),
+                nft_details: Some(Self::create_mock_nft_details("item_001", false)),
+                nft_state: Some(Self::create_mock_nft_state("player_456", false)),
                 seller_player_id: "player_456".to_string(),
                 seller_bunker_tag: "MVEPlayer".to_string(),
                 listing_price_ntc_wei: 100, // 100 credits in MVE mode
@@ -204,40 +239,14 @@ impl marketplace_service_server::MarketplaceService for MarketplaceGrpcService {
         let listing_detail = MarketListingDetailProto {
             listing: Some(MarketListingProto {
                 listing_id: req.listing_id.clone(),
-                nft_details: Some(bunkerverse::core::v1::NftDetailsProto {
-                    nft_id: "nft_001".to_string(),
-                    token_id: "1".to_string(),
-                    contract_address: if context.enable_crypto {
-                        "0xabcdef1234567890".to_string()
-                    } else {
-                        "".to_string()
-                    },
-                    name: "Mock NFT".to_string(),
-                    description: "A mock NFT for testing".to_string(),
-                    image_url: "https://example.com/nft.png".to_string(),
-                    metadata_json: "{}".to_string(),
-                    item_type: bunkerverse::core::v1::ItemTypeProto::Weapon as i32,
-                    item_rarity: bunkerverse::core::v1::ItemRarityProto::Epic as i32,
-                    item_condition: bunkerverse::core::v1::ItemConditionProto::Excellent as i32,
-                    mint_timestamp: Utc::now().timestamp(),
-                    creator_address: if context.enable_crypto {
-                        "0x1234567890abcdef".to_string()
-                    } else {
-                        "system".to_string()
-                    },
-                }),
-                nft_state: Some(bunkerverse::core::v1::NftMutableStateProto {
-                    nft_id: "nft_001".to_string(),
-                    current_owner_id: "player_123".to_string(),
-                    market_status: bunkerverse::core::v1::MarketStatusProto::ListedForSale as i32,
-                    equipped_robot_id: None,
-                    last_transaction_hash: if context.enable_crypto {
-                        Some("0xmocktxhash123".to_string())
-                    } else {
-                        None
-                    },
-                    last_updated_timestamp: Utc::now().timestamp(),
-                }),
+                nft_details: Some(Self::create_mock_nft_details(
+                    "nft_001",
+                    context.enable_crypto,
+                )),
+                nft_state: Some(Self::create_mock_nft_state(
+                    "player_123",
+                    context.enable_crypto,
+                )),
                 seller_player_id: "player_123".to_string(),
                 seller_bunker_tag: "TestSeller".to_string(),
                 listing_price_ntc_wei: if context.enable_crypto {
@@ -338,26 +347,13 @@ impl marketplace_service_server::MarketplaceService for MarketplaceGrpcService {
             .await?;
 
         let nft_details = NftDetailsResponseProto {
-            nft_details: Some(bunkerverse::core::v1::NftDetailsProto {
-                nft_id: req.nft_id.clone(),
-                token_id: "1".to_string(),
-                contract_address: "0xabcdef1234567890".to_string(),
-                name: "Mock NFT".to_string(),
-                description: "A mock NFT for testing".to_string(),
-                image_url: "https://example.com/nft.png".to_string(),
-                metadata_json: r#"{"attributes":[{"trait_type":"rarity","value":"epic"},{"trait_type":"level","value":"5"}]}"#.to_string(),
-                item_type: bunkerverse::core::v1::ItemTypeProto::Weapon as i32,
-                item_rarity: bunkerverse::core::v1::ItemRarityProto::Epic as i32,
-                item_condition: bunkerverse::core::v1::ItemConditionProto::Excellent as i32,
-                mint_timestamp: Utc::now().timestamp(),
-                creator_address: "0x1234567890abcdef".to_string(),
-            }),
+            nft_details: Some(Self::create_mock_nft_details(&req.nft_id, true)),
             nft_state: Some(bunkerverse::core::v1::NftMutableStateProto {
-                nft_id: req.nft_id.clone(),
                 current_owner_id: "player_123".to_string(),
-                market_status: bunkerverse::core::v1::MarketStatusProto::Owned as i32,
-                equipped_robot_id: Some("robot_001".to_string()),
-                last_transaction_hash: Some("0xmocktxhash123".to_string()),
+                current_condition: bunkerverse::core::v1::ItemConditionProto::NewState as i32,
+                is_soulbound: false,
+                market_status: bunkerverse::core::v1::MarketStatusProto::NotListed as i32,
+                market_price_ntc: 0,
                 last_updated_timestamp: Utc::now().timestamp(),
             }),
             price_history: vec![],
@@ -369,7 +365,7 @@ impl marketplace_service_server::MarketplaceService for MarketplaceGrpcService {
                 total_sales_30d: 50,
                 recent_sales: vec![],
             }),
-            metadata_json: r#"{"name":"Mock NFT","description":"A mock NFT for testing","image":"https://example.com/nft.png","attributes":[{"trait_type":"rarity","value":"epic"}]}"#.to_string(),
+            metadata_json: r#"{"name":"Mock NFT","description":"A mock NFT for testing","image":"https://example.com/nft.png","attributes":[{"trait_type":"rarity","value":"advanced"}]}"#.to_string(),
         };
 
         let response = GetNftDetailsResponse {
@@ -396,26 +392,13 @@ impl marketplace_service_server::MarketplaceService for MarketplaceGrpcService {
 
         let owned_nfts = if context.enable_crypto {
             vec![PlayerOwnedNftProto {
-                nft_details: Some(bunkerverse::core::v1::NftDetailsProto {
-                    nft_id: "nft_player_001".to_string(),
-                    token_id: "42".to_string(),
-                    contract_address: "0xabcdef1234567890".to_string(),
-                    name: "Player's Epic Weapon".to_string(),
-                    description: "A legendary weapon NFT owned by the player".to_string(),
-                    image_url: "https://example.com/player-weapon.png".to_string(),
-                    metadata_json: "{}".to_string(),
-                    item_type: bunkerverse::core::v1::ItemTypeProto::Weapon as i32,
-                    item_rarity: bunkerverse::core::v1::ItemRarityProto::Epic as i32,
-                    item_condition: bunkerverse::core::v1::ItemConditionProto::Excellent as i32,
-                    mint_timestamp: Utc::now().timestamp(),
-                    creator_address: "0x1234567890abcdef".to_string(),
-                }),
+                nft_details: Some(Self::create_mock_nft_details("nft_player_001", true)),
                 nft_state: Some(bunkerverse::core::v1::NftMutableStateProto {
-                    nft_id: "nft_player_001".to_string(),
                     current_owner_id: req.player_id.clone(),
-                    market_status: bunkerverse::core::v1::MarketStatusProto::Owned as i32,
-                    equipped_robot_id: Some("robot_001".to_string()),
-                    last_transaction_hash: Some("0xmocktxhash456".to_string()),
+                    current_condition: bunkerverse::core::v1::ItemConditionProto::NewState as i32,
+                    is_soulbound: false,
+                    market_status: bunkerverse::core::v1::MarketStatusProto::NotListed as i32,
+                    market_price_ntc: 0,
                     last_updated_timestamp: Utc::now().timestamp(),
                 }),
                 acquired_at: (Utc::now() - chrono::Duration::days(30)).timestamp(),
@@ -562,7 +545,7 @@ impl marketplace_service_server::MarketplaceService for MarketplaceGrpcService {
         request: Request<bunkerverse::core::v1::TransactionRequestProto>,
     ) -> Result<Response<bunkerverse::core::v1::TransactionReceiptProto>, Status> {
         let req = request.into_inner();
-        let context = self.create_context(req.trace_id.clone()).await;
+        let context = self.create_context(Some(req.trace_id.clone())).await;
 
         {
             let stub = self.stub.lock().await;
@@ -576,12 +559,10 @@ impl marketplace_service_server::MarketplaceService for MarketplaceGrpcService {
             transaction_hash: "0xmocktxhash99999".to_string(),
             status: bunkerverse::core::v1::TransactionStatusProto::Confirmed as i32,
             block_number: 12345,
-            transaction_index: 0,
             gas_used: 21000,
-            gas_price: req.max_gas_price.unwrap_or(20000000000),
-            confirmation_count: 1,
-            transaction_timestamp: Utc::now().timestamp(),
-            events: vec![],
+            error_message: "".to_string(),
+            emitted_events: vec![],
+            confirmation_timestamp: Utc::now().timestamp(),
         };
 
         Ok(Response::new(response))
@@ -606,12 +587,10 @@ impl marketplace_service_server::MarketplaceService for MarketplaceGrpcService {
             transaction_hash: req.transaction_hash,
             status: bunkerverse::core::v1::TransactionStatusProto::Confirmed as i32,
             block_number: 12345,
-            transaction_index: 0,
             gas_used: 21000,
-            gas_price: 20000000000,
-            confirmation_count: 6,
-            transaction_timestamp: Utc::now().timestamp(),
-            events: vec![],
+            error_message: "".to_string(),
+            emitted_events: vec![],
+            confirmation_timestamp: Utc::now().timestamp(),
         };
 
         Ok(Response::new(response))
@@ -631,9 +610,8 @@ impl marketplace_service_server::MarketplaceService for MarketplaceGrpcService {
 
         let response = HealthResponse {
             status: "HEALTHY".to_string(),
-            timestamp: Utc::now().timestamp(),
-            service_name: "marketplace-service".to_string(),
             version: "0.1.0".to_string(),
+            timestamp: Utc::now().timestamp(),
             details: std::collections::HashMap::new(),
         };
 

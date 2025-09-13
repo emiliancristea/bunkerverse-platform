@@ -1,6 +1,4 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::time::Duration;
 
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct StubConfiguration {

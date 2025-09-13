@@ -423,10 +423,8 @@ impl BunkerVerseError {
                 | AuthenticationError::AccountLocked { .. } => ErrorCode::Unauthorized,
                 _ => ErrorCode::Unknown,
             },
-            BunkerVerseError::Database(db_err) => match db_err {
-                DatabaseError::NotFound { .. } => ErrorCode::NotFound,
-                _ => ErrorCode::InternalError,
-            },
+            BunkerVerseError::Database(DatabaseError::NotFound { .. }) => ErrorCode::NotFound,
+            BunkerVerseError::Database(_) => ErrorCode::InternalError,
             BunkerVerseError::Network(net_err) => match net_err {
                 NetworkError::RateLimited { .. } => ErrorCode::RateLimited,
                 NetworkError::ServiceUnavailable { .. } => ErrorCode::InternalError,
@@ -437,10 +435,10 @@ impl BunkerVerseError {
                 BlockchainError::TransactionFailed { .. } => ErrorCode::TransactionFailed,
                 _ => ErrorCode::InternalError,
             },
-            BunkerVerseError::Payment(pay_err) => match pay_err {
-                PaymentError::InsufficientFunds { .. } => ErrorCode::InsufficientBalance,
-                _ => ErrorCode::InternalError,
-            },
+            BunkerVerseError::Payment(PaymentError::InsufficientFunds { .. }) => {
+                ErrorCode::InsufficientBalance
+            }
+            BunkerVerseError::Payment(_) => ErrorCode::InternalError,
             BunkerVerseError::GameLogic(game_err) => match game_err {
                 GameLogicError::PlayerNotFound { .. } => ErrorCode::NotFound,
                 GameLogicError::NftNotOwned { .. } => ErrorCode::Unauthorized,

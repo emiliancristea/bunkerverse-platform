@@ -2,6 +2,12 @@
 name = "social-service"
 version = "0.1.0"
 edition = "2021"
+description = "Social interaction service for BUNKERVERSE Platform - handles player relationships, messaging, and social features"
+license = "MIT"
+repository = "https://github.com/emiliancristea/bunkerverse-platform"
+readme = "README.md"
+keywords = ["bunkerverse", "social", "messaging", "community", "gaming"]
+categories = ["games", "web-programming"]
 
 [[bin]]
 name = "social-service"

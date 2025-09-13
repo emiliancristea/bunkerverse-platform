@@ -4,7 +4,6 @@ use anyhow::Result;
 use chrono::Utc;
 use std::{collections::HashMap, sync::Arc};
 use tonic::{Request, Response, Status};
-use tracing::info;
 use uuid::Uuid;
 
 // Include the generated protobuf code
@@ -91,18 +90,17 @@ impl indexer_service_server::IndexerService for IndexerGrpcService {
         self.simulate_latency_and_errors(&context, "GetEvents")
             .await?;
 
-        let mock_events = vec![
-            bunkerverse::core::v1::CanonicalEventProto {
-                event_id: "event_001".to_string(),
-                event_type: "NftTransfer".to_string(),
-                player_id: "player_123".to_string(),
-                block_number: 12345,
-                transaction_hash: "0xabc123".to_string(),
-                log_index: 0,
-                timestamp: Utc::now().timestamp(),
-                data_json: r#"{"nft_id":"nft_001","from":"player_456","to":"player_123","price_wei":"1000000000000000000"}"#.to_string(),
-            }
-        ];
+        // Return minimal mock events with correct schema structure
+        let mock_events = vec![bunkerverse::core::v1::CanonicalEventProto {
+            event_id: "event_001".to_string(),
+            block_number: 12345,
+            log_index: 0,
+            contract_address: "0xcontract123".to_string(),
+            transaction_hash: "0xabc123".to_string(),
+            block_timestamp: Utc::now().timestamp(),
+            payload: None, // Simplified - no payload for stub
+            schema_version: 1,
+        }];
 
         let response = GetEventsResponse {
             result: Some(get_events_response::Result::Success(GetEventsSuccess {
@@ -146,15 +144,13 @@ impl indexer_service_server::IndexerService for IndexerGrpcService {
 
         let mock_events = vec![bunkerverse::core::v1::CanonicalEventProto {
             event_id: "event_player_001".to_string(),
-            event_type: "MissionCompleted".to_string(),
-            player_id: req.player_id.clone(),
             block_number: 12340,
-            transaction_hash: "0xdef456".to_string(),
             log_index: 1,
-            timestamp: (Utc::now() - chrono::Duration::hours(1)).timestamp(),
-            data_json:
-                r#"{"mission_id":"mission_001","reward_wei":"500000000000000000","experience":100}"#
-                    .to_string(),
+            contract_address: "0xmissioncontract456".to_string(),
+            transaction_hash: "0xdef456".to_string(),
+            block_timestamp: (Utc::now() - chrono::Duration::hours(1)).timestamp(),
+            payload: None, // Simplified
+            schema_version: 1,
         }];
 
         let response = GetEventsByPlayerResponse {
@@ -202,13 +198,13 @@ impl indexer_service_server::IndexerService for IndexerGrpcService {
 
         let mock_events = vec![bunkerverse::core::v1::CanonicalEventProto {
             event_id: "event_type_001".to_string(),
-            event_type: req.event_type.clone(),
-            player_id: "player_789".to_string(),
             block_number: 12350,
-            transaction_hash: "0xghi789".to_string(),
             log_index: 0,
-            timestamp: Utc::now().timestamp(),
-            data_json: "{}".to_string(),
+            contract_address: "0xcontractabc789".to_string(),
+            transaction_hash: "0xghi789".to_string(),
+            block_timestamp: Utc::now().timestamp(),
+            payload: None, // Simplified
+            schema_version: 1,
         }];
 
         let response = GetEventsByTypeResponse {
@@ -256,13 +252,13 @@ impl indexer_service_server::IndexerService for IndexerGrpcService {
 
         let mock_events = vec![bunkerverse::core::v1::CanonicalEventProto {
             event_id: "event_block_001".to_string(),
-            event_type: "BlockProcessed".to_string(),
-            player_id: "system".to_string(),
             block_number: req.start_block,
-            transaction_hash: "0xjkl012".to_string(),
             log_index: 0,
-            timestamp: Utc::now().timestamp(),
-            data_json: r#"{"gas_used":"8500000","transaction_count":42}"#.to_string(),
+            contract_address: "0xsystemcontract".to_string(),
+            transaction_hash: "0xjkl012".to_string(),
+            block_timestamp: Utc::now().timestamp(),
+            payload: None, // Simplified
+            schema_version: 1,
         }];
 
         let response = GetEventsByBlockResponse {
@@ -305,49 +301,80 @@ impl indexer_service_server::IndexerService for IndexerGrpcService {
         self.simulate_latency_and_errors(&context, "GetPlayerChainState")
             .await?;
 
-        // Return mock chain state
+        // Return simplified chain state with correct schema
         let chain_state = bunkerverse::core::v1::AgentChainStateProto {
             player_id: req.player_id,
-            bunker_tag: "TestPlayer".to_string(),
-            ntc_balance_wei: if context.enable_crypto {
-                5000000000000000000u64
+            balances: Some(bunkerverse::core::v1::BalancesProto {
+                xp: 12500,
+                ntc_balance: if context.enable_crypto {
+                    5000000000000000000u64
+                } else {
+                    5000
+                },
+                credits_balance: 10000,
+            }),
+            active_bunkerguard: Some(bunkerverse::core::v1::ActiveBunkerguardDataProto {
+                robot_id: Some("robot_001".to_string()),
+                level: 25,
+                current_class: Some(bunkerverse::core::v1::BunkerClassProto::Explorer as i32),
+                current_affiliation: bunkerverse::core::v1::ClassAffiliationProto::Loyal as i32,
+                final_stats: Some(bunkerverse::core::v1::CoreStatsProto {
+                    damage: 85,
+                    accuracy: 80,
+                    critical_chance: 20,
+                    armor_piercing: 30,
+                    speed: 90,
+                    agility: 60,
+                    stealth: 40,
+                    evasion: 70,
+                    health: 100,
+                    shield: 80,
+                    detection: 80,
+                    range: 90,
+                    combat_average: 54,
+                    mobility_average: 65,
+                    survivability_average: 90,
+                    sensors_average: 85,
+                }),
+                equipped_items: HashMap::from([
+                    ("weapon".to_string(), "nft_weapon_001".to_string()),
+                    ("armor".to_string(), "nft_armor_001".to_string()),
+                ]),
+                total_xp: 125000,
+                last_active_timestamp: Utc::now().timestamp(),
+            }),
+            owned_nft_ids_by_type: HashMap::from([
+                (
+                    "Weapon".to_string(),
+                    "nft_weapon_001,nft_weapon_002".to_string(),
+                ),
+                ("Armor".to_string(), "nft_armor_001".to_string()),
+            ]),
+            ntc_staking: if context.enable_crypto {
+                Some(bunkerverse::core::v1::NtcStakingDetailsProto {
+                    total_staked_ntc: 1000000000000000000u64,
+                    rewards_earned_ntc: 250000000000000000u64,
+                    stake_start_timestamp: (Utc::now() - chrono::Duration::days(30)).timestamp(),
+                    last_reward_claim_timestamp: (Utc::now() - chrono::Duration::days(7))
+                        .timestamp(),
+                    staking_tier: 3,
+                    auto_compound: true,
+                })
             } else {
-                5000
+                None
             },
-            staked_ntc_wei: if context.enable_crypto {
-                1000000000000000000u64
+            crypto_addresses: if context.enable_crypto {
+                Some(bunkerverse::core::v1::CryptoAddressesProto {
+                    l3_wallet_address: "0xplayer123456".to_string(),
+                    l2_wallet_address: "0xplayerarb789".to_string(),
+                    l1_wallet_address: "0xplayereth000".to_string(),
+                    addresses_updated_timestamp: Utc::now().timestamp(),
+                })
             } else {
-                1000
+                None
             },
-            unclaimed_rewards_wei: if context.enable_crypto {
-                250000000000000000u64
-            } else {
-                250
-            },
-            owned_nfts: if context.enable_crypto {
-                vec![bunkerverse::core::v1::NftDetailsProto {
-                    nft_id: "nft_player_001".to_string(),
-                    token_id: "42".to_string(),
-                    contract_address: "0xcontract123".to_string(),
-                    name: "Player Weapon".to_string(),
-                    description: "A powerful weapon".to_string(),
-                    image_url: "https://example.com/weapon.png".to_string(),
-                    metadata_json: "{}".to_string(),
-                    item_type: bunkerverse::core::v1::ItemTypeProto::Weapon as i32,
-                    item_rarity: bunkerverse::core::v1::ItemRarityProto::Epic as i32,
-                    item_condition: bunkerverse::core::v1::ItemConditionProto::Excellent as i32,
-                    mint_timestamp: Utc::now().timestamp(),
-                    creator_address: "0xcreator123".to_string(),
-                }]
-            } else {
-                vec![] // No NFTs in MVE mode
-            },
-            equipped_items: HashMap::new(),
-            active_missions: vec!["mission_001".to_string()],
-            completed_missions: vec!["mission_starter".to_string()],
-            social_connections: vec![],
-            last_activity_timestamp: Utc::now().timestamp(),
-            account_creation_timestamp: (Utc::now() - chrono::Duration::days(30)).timestamp(),
+            schema_version: 1,
+            last_updated_timestamp: Utc::now().timestamp(),
         };
 
         let response = GetPlayerChainStateResponse {
@@ -381,25 +408,44 @@ impl indexer_service_server::IndexerService for IndexerGrpcService {
 
         let ownership_data = GetNftOwnershipSuccess {
             nft_details: Some(bunkerverse::core::v1::NftDetailsProto {
-                nft_id: req.nft_id.clone(),
-                token_id: "1".to_string(),
-                contract_address: "0xcontract456".to_string(),
-                name: "Mock NFT".to_string(),
-                description: "A mock NFT for testing".to_string(),
-                image_url: "https://example.com/nft.png".to_string(),
-                metadata_json: "{}".to_string(),
-                item_type: bunkerverse::core::v1::ItemTypeProto::Armor as i32,
-                item_rarity: bunkerverse::core::v1::ItemRarityProto::Rare as i32,
-                item_condition: bunkerverse::core::v1::ItemConditionProto::Good as i32,
-                mint_timestamp: (Utc::now() - chrono::Duration::days(15)).timestamp(),
-                creator_address: "0xcreator456".to_string(),
+                identifier: Some(bunkerverse::core::v1::NftIdentifierProto {
+                    nft_id: req.nft_id.clone(),
+                    token_id: 1,
+                    contract_address: "0xcontract456".to_string(),
+                }),
+                item_type: bunkerverse::core::v1::ItemTypeProto::Torso as i32,
+                item_rarity: bunkerverse::core::v1::ItemRarityProto::Advanced as i32,
+                base_stat_boosts: Some(bunkerverse::core::v1::CoreStatsProto {
+                    damage: 0,
+                    accuracy: 0,
+                    critical_chance: 0,
+                    armor_piercing: 10,
+                    speed: 0,
+                    agility: 0,
+                    stealth: 0,
+                    evasion: 0,
+                    health: 0,
+                    shield: 20,
+                    detection: 0,
+                    range: 0,
+                    combat_average: 3,
+                    mobility_average: 0,
+                    survivability_average: 10,
+                    sensors_average: 0,
+                }),
+                class_affinities: vec![bunkerverse::core::v1::BunkerClassProto::Explorer as i32],
+                trait_affiliation: bunkerverse::core::v1::ClassAffiliationProto::Loyal as i32,
+                construct_origin: "Factory Beta".to_string(),
+                metadata_pointer_uri: "Qm123456789abcdefghijklmnopqrstuvwxyzABCDEFGH".to_string(),
+                schema_version: 1,
+                created_timestamp: (Utc::now() - chrono::Duration::days(15)).timestamp(),
             }),
             current_state: Some(bunkerverse::core::v1::NftMutableStateProto {
-                nft_id: req.nft_id.clone(),
                 current_owner_id: "player_123".to_string(),
-                market_status: bunkerverse::core::v1::MarketStatusProto::Owned as i32,
-                equipped_robot_id: None,
-                last_transaction_hash: Some("0xlasttx789".to_string()),
+                current_condition: bunkerverse::core::v1::ItemConditionProto::NewState as i32,
+                is_soulbound: false,
+                market_status: bunkerverse::core::v1::MarketStatusProto::NotListed as i32,
+                market_price_ntc: 0,
                 last_updated_timestamp: Utc::now().timestamp(),
             }),
             ownership_history: if req.include_history {
@@ -571,9 +617,8 @@ impl indexer_service_server::IndexerService for IndexerGrpcService {
 
         let response = HealthResponse {
             status: "HEALTHY".to_string(),
-            timestamp: Utc::now().timestamp(),
-            service_name: "indexer-service".to_string(),
             version: "0.1.0".to_string(),
+            timestamp: Utc::now().timestamp(),
             details: HashMap::new(),
         };
 

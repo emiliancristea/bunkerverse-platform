@@ -2,6 +2,12 @@
 name = "nar-rust-wrapper"
 version = "0.1.0"
 edition = "2021"
+description = "Rust wrapper for NAR (LLAMA CPP) functionality in BUNKERVERSE Platform"
+license = "MIT"
+repository = "https://github.com/bunkercorporation/bunkerverse-platform"
+readme = "README.md"
+keywords = ["llama-cpp", "wrapper", "nar", "ai", "bunkerverse"]
+categories = ["api-bindings", "science"]
 
 [dependencies]
 libc = "0.2"

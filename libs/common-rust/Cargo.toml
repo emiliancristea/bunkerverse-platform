@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 description = "BUNKERVERSE Platform - Common Rust Types & Utilities"
 license = "MIT"
+repository = "https://github.com/bunkercorporation/bunkerverse-platform"
+readme = "README.md"
+keywords = ["bunkerverse", "validation", "common", "utilities"]
+categories = ["development-tools", "data-structures"]
 
 [dependencies]
 # Serialization

@@ -16,7 +16,7 @@ RUN adduser --disabled-password --gecos "" --home "/nonexistent" --shell "/sbin/
 WORKDIR /build
 
 # Copy workspace files for dependency resolution
-COPY Cargo-docker.toml ./Cargo.toml
+COPY Cargo.toml ./
 COPY Cargo.lock ./
 COPY services/identity/Cargo.toml ./services/identity/Cargo.toml
 COPY services/account/Cargo.toml ./services/account/Cargo.toml

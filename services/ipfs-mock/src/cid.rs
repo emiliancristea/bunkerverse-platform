@@ -2,11 +2,13 @@ use sha2::{Digest, Sha256};
 use std::fmt;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct Cid {
     pub hash: String,
     pub version: u8,
 }
 
+#[allow(dead_code)]
 impl Cid {
     pub fn new(content: &[u8]) -> Self {
         let mut hasher = Sha256::new();
@@ -81,6 +83,7 @@ impl fmt::Display for Cid {
 }
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum CidError {
     InvalidFormat(String),
     UnsupportedVersion(u8),

@@ -4,7 +4,6 @@ use anyhow::Result;
 use chrono::Utc;
 use std::{collections::HashMap, sync::Arc};
 use tonic::{Request, Response, Status};
-use tracing::info;
 use uuid::Uuid;
 
 // Include the generated protobuf code
@@ -21,7 +20,7 @@ pub mod bunkerverse {
     }
 }
 
-use bunkerverse::services::v1::*;
+use bunkerverse::services::v1::{ai_data_service_server::AiDataService, *};
 
 pub struct AiDataGrpcService {
     stub: Arc<tokio::sync::Mutex<AiDataStub>>,
@@ -70,7 +69,7 @@ impl AiDataGrpcService {
 }
 
 #[tonic::async_trait]
-impl ai_data_service_server::AiDataService for AiDataGrpcService {
+impl AiDataService for AiDataGrpcService {
     async fn get_ai_agent_input_data_context(
         &self,
         request: Request<GetAiAgentInputDataContextRequest>,
@@ -138,11 +137,22 @@ impl ai_data_service_server::AiDataService for AiDataGrpcService {
                 robot_affiliation: "Freelancer".to_string(),
                 robot_level: 20,
                 stats: Some(bunkerverse::core::v1::CoreStatsProto {
-                    health: 100,
-                    attack: 85,
-                    defense: 70,
+                    damage: 85,
+                    accuracy: 80,
+                    critical_chance: 20,
+                    armor_piercing: 30,
                     speed: 90,
-                    energy: 80,
+                    agility: 60,
+                    stealth: 40,
+                    evasion: 70,
+                    health: 100,
+                    shield: 80,
+                    detection: 80,
+                    range: 90,
+                    combat_average: 54,
+                    mobility_average: 65,
+                    survivability_average: 90,
+                    sensors_average: 85,
                 }),
                 equipped_items: vec!["Energy Rifle".to_string(), "Shield Generator".to_string()],
                 special_abilities: vec!["Stealth Mode".to_string(), "Energy Boost".to_string()],
@@ -174,11 +184,22 @@ impl ai_data_service_server::AiDataService for AiDataGrpcService {
                     acquisition_method: "mission_reward".to_string(),
                     acquisition_timestamp: (Utc::now() - chrono::Duration::days(3)).timestamp(),
                     stat_bonuses: Some(bunkerverse::core::v1::CoreStatsProto {
-                        health: 0,
-                        attack: 0,
-                        defense: 5,
+                        damage: 0,
+                        accuracy: 0,
+                        critical_chance: 0,
+                        armor_piercing: 5,
                         speed: 0,
-                        energy: 10,
+                        agility: 0,
+                        stealth: 0,
+                        evasion: 0,
+                        health: 0,
+                        shield: 10,
+                        detection: 0,
+                        range: 0,
+                        combat_average: 1,
+                        mobility_average: 0,
+                        survivability_average: 5,
+                        sensors_average: 0,
                     }),
                     special_properties: vec!["Enhanced Detection Range".to_string()],
                 }
@@ -390,11 +411,22 @@ impl ai_data_service_server::AiDataService for AiDataGrpcService {
                 robot_affiliation: "Freelancer".to_string(),
                 robot_level: 20,
                 stats: Some(bunkerverse::core::v1::CoreStatsProto {
-                    health: 100,
-                    attack: 85,
-                    defense: 70,
+                    damage: 85,
+                    accuracy: 80,
+                    critical_chance: 20,
+                    armor_piercing: 30,
                     speed: 90,
-                    energy: 80,
+                    agility: 60,
+                    stealth: 40,
+                    evasion: 70,
+                    health: 100,
+                    shield: 80,
+                    detection: 80,
+                    range: 90,
+                    combat_average: 54,
+                    mobility_average: 65,
+                    survivability_average: 90,
+                    sensors_average: 85,
                 }),
                 equipped_items: vec!["Advanced Scanner".to_string(), "Energy Shield".to_string()],
                 special_abilities: vec!["Enhanced Sensors".to_string(), "Stealth Mode".to_string()],
@@ -468,11 +500,22 @@ impl ai_data_service_server::AiDataService for AiDataGrpcService {
                 participant_name: "Player".to_string(),
                 participant_type: "player".to_string(),
                 combat_stats: Some(bunkerverse::core::v1::CoreStatsProto {
-                    health: 85,
-                    attack: 75,
-                    defense: 65,
+                    damage: 75,
+                    accuracy: 80,
+                    critical_chance: 15,
+                    armor_piercing: 25,
                     speed: 80,
-                    energy: 70,
+                    agility: 55,
+                    stealth: 35,
+                    evasion: 65,
+                    health: 85,
+                    shield: 70,
+                    detection: 75,
+                    range: 85,
+                    combat_average: 49,
+                    mobility_average: 59,
+                    survivability_average: 78,
+                    sensors_average: 80,
                 }),
                 health_points: 85,
                 max_health_points: 100,
@@ -486,11 +529,22 @@ impl ai_data_service_server::AiDataService for AiDataGrpcService {
                     participant_name: "Security Drone".to_string(),
                     participant_type: "enemy".to_string(),
                     combat_stats: Some(bunkerverse::core::v1::CoreStatsProto {
-                        health: 60,
-                        attack: 70,
-                        defense: 80,
+                        damage: 70,
+                        accuracy: 85,
+                        critical_chance: 10,
+                        armor_piercing: 20,
                         speed: 90,
-                        energy: 50,
+                        agility: 95,
+                        stealth: 75,
+                        evasion: 90,
+                        health: 60,
+                        shield: 50,
+                        detection: 90,
+                        range: 95,
+                        combat_average: 46,
+                        mobility_average: 88,
+                        survivability_average: 55,
+                        sensors_average: 93,
                     }),
                     health_points: 0, // Defeated
                     max_health_points: 60,
@@ -988,9 +1042,8 @@ impl ai_data_service_server::AiDataService for AiDataGrpcService {
 
         let response = HealthResponse {
             status: "HEALTHY".to_string(),
-            timestamp: Utc::now().timestamp(),
-            service_name: "ai-data-service".to_string(),
             version: "0.1.0".to_string(),
+            timestamp: Utc::now().timestamp(),
             details: HashMap::new(),
         };
 

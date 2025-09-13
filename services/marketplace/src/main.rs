@@ -22,7 +22,7 @@ use stub::{MarketplaceStub, RequestContext, SmartStub};
 use tokio::signal;
 use tonic::transport::Server;
 use tower_http::{cors::CorsLayer, trace::TraceLayer};
-use tracing::{info, Level};
+use tracing::info;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt, EnvFilter};
 use uuid::Uuid;
 
@@ -189,7 +189,7 @@ pub async fn reset_stub_state(
 pub async fn get_market_listings(
     State(state): State<AppState>,
     Query(pagination): Query<PaginationQuery>,
-    Query(filters): Query<MarketplaceFilters>,
+    Query(_filters): Query<MarketplaceFilters>,
 ) -> Result<Json<MarketListingsResponse>, (StatusCode, Json<ErrorResponse>)> {
     let context = state.create_context(None).await;
     let stub = state.stub.lock().await;
@@ -420,7 +420,7 @@ pub async fn get_nft_details(
 
 pub async fn create_listing(
     State(state): State<AppState>,
-    Json(request): Json<CreateListingRequest>,
+    Json(_request): Json<CreateListingRequest>,
 ) -> Result<Json<CreateListingResponse>, (StatusCode, Json<ErrorResponse>)> {
     let context = state.create_context(None).await;
     let stub = state.stub.lock().await;
@@ -611,7 +611,21 @@ async fn main() -> Result<()> {
         .serve_with_shutdown(grpc_addr, shutdown_signal());
 
     // Use tokio::try_join to run both servers concurrently
-    tokio::try_join!(http_server, grpc_server)?;
+    let http_result = http_server;
+    let grpc_result = grpc_server;
+
+    tokio::select! {
+        result = http_result => {
+            if let Err(e) = result {
+                return Err(anyhow::anyhow!("HTTP server error: {}", e));
+            }
+        },
+        result = grpc_result => {
+            if let Err(e) = result {
+                return Err(anyhow::anyhow!("gRPC server error: {}", e));
+            }
+        }
+    }
 
     Ok(())
 }

@@ -1,6 +1,7 @@
 use serde_json::json;
 
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub enum ContentType {
     Json,
     Text,

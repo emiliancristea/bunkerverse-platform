@@ -380,7 +380,7 @@ impl PlayerLevel {
 
     /// Create PlayerLevel with validation
     pub fn new(level: u32) -> Result<Self> {
-        if level < Self::MIN || level > Self::MAX {
+        if !(Self::MIN..=Self::MAX).contains(&level) {
             return Err(BunkerVerseError::Validation(ValidationError::OutOfRange {
                 field: "player_level".to_string(),
                 value: level.to_string(),
@@ -398,7 +398,7 @@ impl PlayerLevel {
 
     /// Check if level is valid
     pub fn is_valid(level: u32) -> bool {
-        level >= Self::MIN && level <= Self::MAX
+        (Self::MIN..=Self::MAX).contains(&level)
     }
 }
 
@@ -415,7 +415,7 @@ impl fmt::Display for PlayerLevel {
 }
 
 /// Stat value - Bounded between 0 and 1000
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub struct StatValue(u32);
 
 impl StatValue {
@@ -446,12 +446,6 @@ impl StatValue {
     }
 }
 
-impl Default for StatValue {
-    fn default() -> Self {
-        Self(0)
-    }
-}
-
 impl fmt::Display for StatValue {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.0)
@@ -463,7 +457,7 @@ impl fmt::Display for StatValue {
 // ============================================================================
 
 /// NTC amount in wei (smallest unit)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub struct NtcAmount(u64);
 
 impl NtcAmount {
@@ -499,12 +493,6 @@ impl NtcAmount {
     }
 }
 
-impl Default for NtcAmount {
-    fn default() -> Self {
-        Self(0)
-    }
-}
-
 impl fmt::Display for NtcAmount {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.format_ntc())
@@ -512,7 +500,7 @@ impl fmt::Display for NtcAmount {
 }
 
 /// Credits amount (fiat-backed currency for MVE mode)
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub struct CreditAmount(u64);
 
 impl CreditAmount {
@@ -520,7 +508,7 @@ impl CreditAmount {
     pub const CENTS_PER_CREDIT: u64 = 100;
 
     /// Maximum credits a player can hold
-    pub const MAX_CREDITS: u64 = 1_000_000_00; // 1 million credits
+    pub const MAX_CREDITS: u64 = 100_000_000; // 1 million credits
 
     /// Create CreditAmount from cents
     pub fn from_cents(cents: u64) -> Result<Self> {
@@ -557,12 +545,6 @@ impl CreditAmount {
     }
 }
 
-impl Default for CreditAmount {
-    fn default() -> Self {
-        Self(0)
-    }
-}
-
 impl fmt::Display for CreditAmount {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}", self.format_credits())
@@ -570,7 +552,7 @@ impl fmt::Display for CreditAmount {
 }
 
 /// Experience points
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Default)]
 pub struct ExperiencePoints(u64);
 
 impl ExperiencePoints {
@@ -600,12 +582,6 @@ impl ExperiencePoints {
         // Simple level calculation: level = floor(sqrt(xp / 1000)) + 1
         let level = ((self.0 as f64 / 1000.0).sqrt() as u32 + 1).min(PlayerLevel::MAX);
         PlayerLevel::new(level).unwrap_or_default()
-    }
-}
-
-impl Default for ExperiencePoints {
-    fn default() -> Self {
-        Self(0)
     }
 }
 

@@ -2,6 +2,12 @@
 name = "account-service"
 version = "0.1.0"
 edition = "2021"
+description = "Account management service for BUNKERVERSE Platform - handles player account creation, authentication, and profile management"
+license = "MIT"
+repository = "https://github.com/emiliancristea/bunkerverse-platform"
+readme = "README.md"
+keywords = ["bunkerverse", "account", "authentication", "gaming", "blockchain"]
+categories = ["games", "authentication", "web-programming"]
 
 [[bin]]
 name = "account-service"

@@ -1,6 +1,12 @@
 [package]
 name = "bunkerverse-contracts"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+description = "Smart contracts for BUNKERVERSE Platform"
+license = "MIT"
+repository = "https://github.com/bunkercorporation/bunkerverse-platform"
+readme = "README.md"
+keywords = ["blockchain", "smart-contracts", "bunkerverse"]
+categories = ["cryptography::cryptocurrencies"]
 
 [dependencies]

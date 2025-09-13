@@ -85,7 +85,18 @@
       "Bash(kubectl:*)",
       "Bash(do echo \"Checking $module:\")",
       "Bash(do echo \"=== Checking $service stub ===\")",
-      "Bash(do echo \"Checking: $requirement\")"
+      "Bash(do echo \"Checking: $requirement\")",
+      "Bash(if [ -f \"services/$service/Cargo.toml\" ])",
+      "Bash(then grep -A5 \"\\[\\[bin\\]\\]\" \"services/$service/Cargo.toml\")",
+      "Bash(else echo \"No Cargo.toml\")",
+      "Bash(fi)",
+      "Bash(do if [ -f \"services/$service/Dockerfile\" ])",
+      "Bash(then echo \"Removing services/$service/Dockerfile\")",
+      "Bash(timeout 120s docker-compose build:*)",
+      "Bash(timeout 60 cargo build)",
+      "Bash(timeout 300s docker build -f infra/dockerfiles/marketplace/Dockerfile -t test-marketplace .)",
+      "Bash(timeout 60s cargo check --bin marketplace-service)",
+      "Bash(xargs clang-format:*)"
     ],
     "deny": [],
     "ask": []

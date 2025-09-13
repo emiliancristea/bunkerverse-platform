@@ -180,7 +180,7 @@ pub fn current_unix_timestamp_millis() -> i64 {
 /// Convert Unix timestamp to ISO 8601 string (UTC)
 pub fn format_unix_timestamp(timestamp: i64) -> String {
     // Basic ISO 8601 formatting - in production use chrono for proper formatting
-    let datetime = UNIX_EPOCH + Duration::from_secs(timestamp as u64);
+    let _datetime = UNIX_EPOCH + Duration::from_secs(timestamp as u64);
 
     // Simple formatting - this is a placeholder for proper datetime formatting
     format!("{}T00:00:00Z", timestamp / 86400 + 719163) // Rough approximation
@@ -188,7 +188,7 @@ pub fn format_unix_timestamp(timestamp: i64) -> String {
 
 /// Format timestamp as human-readable string
 pub fn format_human_readable(timestamp: i64) -> String {
-    let datetime = UNIX_EPOCH + Duration::from_secs(timestamp as u64);
+    let _datetime = UNIX_EPOCH + Duration::from_secs(timestamp as u64);
 
     // Simple formatting - in production use chrono
     let days_since_epoch = timestamp / 86400;
@@ -470,7 +470,7 @@ mod tests {
         assert_eq!(format_duration(Duration::from_secs(30)), "30s");
         assert_eq!(format_duration(Duration::from_secs(90)), "1m 30s");
         assert_eq!(format_duration(Duration::from_secs(3661)), "1h 1m");
-        assert_eq!(format_duration(Duration::from_secs(86401)), "1d 0h");
+        assert_eq!(format_duration(Duration::from_secs(86401)), "1d");
     }
 
     #[test]

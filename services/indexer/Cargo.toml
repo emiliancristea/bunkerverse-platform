@@ -2,6 +2,12 @@
 name = "indexer-service"
 version = "0.1.0"
 edition = "2021"
+description = "Blockchain indexer service for BUNKERVERSE Platform - indexes blockchain events, transactions, and smart contract data"
+license = "MIT"
+repository = "https://github.com/emiliancristea/bunkerverse-platform"
+readme = "README.md"
+keywords = ["bunkerverse", "indexer", "blockchain", "ethereum", "gaming"]
+categories = ["games", "cryptocurrency", "web-programming"]
 
 [[bin]]
 name = "indexer-service"

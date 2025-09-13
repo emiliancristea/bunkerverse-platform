@@ -4,7 +4,6 @@ use anyhow::Result;
 use chrono::Utc;
 use std::{collections::HashMap, sync::Arc};
 use tonic::{Request, Response, Status};
-use tracing::info;
 use uuid::Uuid;
 
 // Include the generated protobuf code
@@ -342,9 +341,8 @@ impl identity_service_server::IdentityService for IdentityGrpcService {
 
         let response = HealthResponse {
             status: "HEALTHY".to_string(),
-            timestamp: Utc::now().timestamp(),
-            service_name: "identity-service".to_string(),
             version: "0.1.0".to_string(),
+            timestamp: Utc::now().timestamp(),
             details: HashMap::new(),
         };
 

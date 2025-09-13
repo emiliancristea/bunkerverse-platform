@@ -35,22 +35,47 @@ static IPFS_CID_REGEX: OnceLock<Regex> = OnceLock::new();
 static EMAIL_REGEX: OnceLock<Regex> = OnceLock::new();
 static USERNAME_REGEX: OnceLock<Regex> = OnceLock::new();
 
+/// Get compiled UUID validation regex
+///
+/// # Returns
+///
+/// A static reference to the compiled regex for UUID validation
 fn get_uuid_regex() -> &'static Regex {
     UUID_REGEX.get_or_init(|| Regex::new(UUID_V4_PATTERN).unwrap())
 }
 
+/// Get compiled Ethereum address validation regex
+///
+/// # Returns
+///
+/// A static reference to the compiled regex for Ethereum address validation
 fn get_ethereum_regex() -> &'static Regex {
     ETHEREUM_REGEX.get_or_init(|| Regex::new(ETHEREUM_ADDRESS_PATTERN).unwrap())
 }
 
+/// Get compiled IPFS CID validation regex
+///
+/// # Returns
+///
+/// A static reference to the compiled regex for IPFS CID validation
 fn get_ipfs_cid_regex() -> &'static Regex {
     IPFS_CID_REGEX.get_or_init(|| Regex::new(IPFS_CID_PATTERN).unwrap())
 }
 
+/// Get compiled email validation regex
+///
+/// # Returns
+///
+/// A static reference to the compiled regex for email validation
 fn get_email_regex() -> &'static Regex {
     EMAIL_REGEX.get_or_init(|| Regex::new(EMAIL_PATTERN).unwrap())
 }
 
+/// Get compiled username/BunkerTag validation regex
+///
+/// # Returns
+///
+/// A static reference to the compiled regex for username validation
 fn get_username_regex() -> &'static Regex {
     USERNAME_REGEX.get_or_init(|| Regex::new(USERNAME_PATTERN).unwrap())
 }
@@ -60,6 +85,19 @@ fn get_username_regex() -> &'static Regex {
 // ============================================================================
 
 /// Validate UUID v4 format
+///
+/// # Arguments
+///
+/// * `uuid` - The UUID string to validate
+///
+/// # Returns
+///
+/// * `Ok(())` if the UUID is valid
+/// * `Err(BunkerVerseError::Validation)` if the UUID format is invalid
+///
+/// # Errors
+///
+/// Returns [`ValidationError::InvalidUuid`] if the UUID is not a valid v4 format
 pub fn validate_uuid_v4(uuid: &str) -> Result<()> {
     if !get_uuid_regex().is_match(uuid) {
         return Err(BunkerVerseError::Validation(ValidationError::InvalidUuid {
@@ -70,6 +108,19 @@ pub fn validate_uuid_v4(uuid: &str) -> Result<()> {
 }
 
 /// Validate Ethereum address format
+///
+/// # Arguments
+///
+/// * `address` - The Ethereum address to validate (should start with 0x)
+///
+/// # Returns
+///
+/// * `Ok(())` if the address is valid
+/// * `Err(BunkerVerseError::Validation)` if the address format is invalid
+///
+/// # Errors
+///
+/// Returns [`ValidationError::InvalidEthereumAddress`] if the address is not a valid Ethereum format
 pub fn validate_ethereum_address(address: &str) -> Result<()> {
     if !get_ethereum_regex().is_match(address) {
         return Err(BunkerVerseError::Validation(
@@ -82,6 +133,19 @@ pub fn validate_ethereum_address(address: &str) -> Result<()> {
 }
 
 /// Validate IPFS CID format (basic QM format)
+///
+/// # Arguments
+///
+/// * `cid` - The IPFS CID to validate
+///
+/// # Returns
+///
+/// * `Ok(())` if the CID is valid
+/// * `Err(BunkerVerseError::Validation)` if the CID format is invalid
+///
+/// # Errors
+///
+/// Returns [`ValidationError::InvalidFormat`] if the CID is not a valid IPFS format
 pub fn validate_ipfs_cid(cid: &str) -> Result<()> {
     if !get_ipfs_cid_regex().is_match(cid) {
         return Err(BunkerVerseError::Validation(
@@ -92,6 +156,19 @@ pub fn validate_ipfs_cid(cid: &str) -> Result<()> {
 }
 
 /// Validate email format
+///
+/// # Arguments
+///
+/// * `email` - The email address to validate
+///
+/// # Returns
+///
+/// * `Ok(())` if the email is valid
+/// * `Err(BunkerVerseError::Validation)` if the email format is invalid
+///
+/// # Errors
+///
+/// Returns [`ValidationError::InvalidFormat`] if the email is not in valid format
 pub fn validate_email(email: &str) -> Result<()> {
     if !get_email_regex().is_match(email) {
         return Err(BunkerVerseError::Validation(
@@ -102,6 +179,19 @@ pub fn validate_email(email: &str) -> Result<()> {
 }
 
 /// Validate username/BunkerTag format
+///
+/// # Arguments
+///
+/// * `username` - The username to validate (3-32 chars, alphanumeric, underscore, hyphen only)
+///
+/// # Returns
+///
+/// * `Ok(())` if the username is valid
+/// * `Err(BunkerVerseError::Validation)` if the username format is invalid
+///
+/// # Errors
+///
+/// Returns [`ValidationError::InvalidFormat`] if the username doesn't meet format requirements
 pub fn validate_username(username: &str) -> Result<()> {
     if !get_username_regex().is_match(username) {
         return Err(BunkerVerseError::Validation(ValidationError::InvalidFormat(
@@ -112,6 +202,22 @@ pub fn validate_username(username: &str) -> Result<()> {
 }
 
 /// Validate string length
+///
+/// # Arguments
+///
+/// * `field` - The name of the field being validated
+/// * `value` - The string value to validate
+/// * `min` - Minimum allowed length
+/// * `max` - Maximum allowed length
+///
+/// # Returns
+///
+/// * `Ok(())` if the string length is within bounds
+/// * `Err(BunkerVerseError::Validation)` if the string length is invalid
+///
+/// # Errors
+///
+/// Returns [`ValidationError::InvalidLength`] if the string is too short or too long
 pub fn validate_string_length(field: &str, value: &str, min: usize, max: usize) -> Result<()> {
     let length = value.len();
     if length < min || length > max {
@@ -128,6 +234,22 @@ pub fn validate_string_length(field: &str, value: &str, min: usize, max: usize) 
 }
 
 /// Validate numeric range
+///
+/// # Arguments
+///
+/// * `field` - The name of the field being validated
+/// * `value` - The numeric value to validate
+/// * `min` - Minimum allowed value
+/// * `max` - Maximum allowed value
+///
+/// # Returns
+///
+/// * `Ok(())` if the value is within the valid range
+/// * `Err(BunkerVerseError::Validation)` if the value is out of range
+///
+/// # Errors
+///
+/// Returns [`ValidationError::OutOfRange`] if the value is below min or above max
 pub fn validate_numeric_range<T>(field: &str, value: T, min: T, max: T) -> Result<()>
 where
     T: PartialOrd + std::fmt::Display + Copy,
@@ -144,12 +266,27 @@ where
 }
 
 /// Validate timestamp is reasonable (> 2021-01-01, < current + 1 day)
+///
+/// # Arguments
+///
+/// * `timestamp` - Unix timestamp in seconds to validate
+///
+/// # Returns
+///
+/// * `Ok(())` if the timestamp is within reasonable bounds
+/// * `Err(BunkerVerseError::Validation)` if the timestamp is invalid
+///
+/// # Errors
+///
+/// Returns [`ValidationError::InvalidTimestamp`] if the timestamp is too old or too far in the future
 pub fn validate_timestamp(timestamp: i64) -> Result<()> {
     const MIN_TIMESTAMP: i64 = 1609459200; // 2021-01-01 00:00:00 UTC
     let current_time = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap_or_default()
-        .as_secs() as i64;
+        .as_secs()
+        .try_into()
+        .unwrap_or(i64::MAX);
     let max_timestamp = current_time + 86400; // Current time + 1 day
 
     if timestamp < MIN_TIMESTAMP {
@@ -174,6 +311,20 @@ pub fn validate_timestamp(timestamp: i64) -> Result<()> {
 }
 
 /// Validate required field is not empty
+///
+/// # Arguments
+///
+/// * `field` - The name of the field being validated
+/// * `value` - The string value to check
+///
+/// # Returns
+///
+/// * `Ok(())` if the string is not empty (after trimming)
+/// * `Err(BunkerVerseError::Validation)` if the string is empty
+///
+/// # Errors
+///
+/// Returns [`ValidationError::RequiredField`] if the string is empty or only whitespace
 pub fn validate_required_string(field: &str, value: &str) -> Result<()> {
     if value.trim().is_empty() {
         return Err(BunkerVerseError::Validation(
@@ -186,6 +337,20 @@ pub fn validate_required_string(field: &str, value: &str) -> Result<()> {
 }
 
 /// Validate required field is present
+///
+/// # Arguments
+///
+/// * `field` - The name of the field being validated
+/// * `value` - The optional value to check
+///
+/// # Returns
+///
+/// * `Ok(())` if the value is `Some`
+/// * `Err(BunkerVerseError::Validation)` if the value is `None`
+///
+/// # Errors
+///
+/// Returns [`ValidationError::RequiredField`] if the value is `None`
 pub fn validate_required_field<T>(field: &str, value: &Option<T>) -> Result<()> {
     if value.is_none() {
         return Err(BunkerVerseError::Validation(
@@ -202,6 +367,19 @@ pub fn validate_required_field<T>(field: &str, value: &Option<T>) -> Result<()> 
 // ============================================================================
 
 /// Validate player ID (UUID v4 + not empty)
+///
+/// # Arguments
+///
+/// * `player_id` - The player ID to validate
+///
+/// # Returns
+///
+/// * `Ok(())` if the player ID is valid
+/// * `Err(BunkerVerseError::Validation)` if the player ID is invalid
+///
+/// # Errors
+///
+/// Returns validation error if the ID is empty or not a valid UUID v4
 pub fn validate_player_id(player_id: &str) -> Result<()> {
     validate_required_string("player_id", player_id)?;
     validate_uuid_v4(player_id)?;
@@ -209,6 +387,19 @@ pub fn validate_player_id(player_id: &str) -> Result<()> {
 }
 
 /// Validate NFT ID (UUID v4 + not empty)
+///
+/// # Arguments
+///
+/// * `nft_id` - The NFT ID to validate
+///
+/// # Returns
+///
+/// * `Ok(())` if the NFT ID is valid
+/// * `Err(BunkerVerseError::Validation)` if the NFT ID is invalid
+///
+/// # Errors
+///
+/// Returns validation error if the ID is empty or not a valid UUID v4
 pub fn validate_nft_id(nft_id: &str) -> Result<()> {
     validate_required_string("nft_id", nft_id)?;
     validate_uuid_v4(nft_id)?;
@@ -216,6 +407,19 @@ pub fn validate_nft_id(nft_id: &str) -> Result<()> {
 }
 
 /// Validate BunkerTag (username format + length)
+///
+/// # Arguments
+///
+/// * `bunker_tag` - The BunkerTag to validate
+///
+/// # Returns
+///
+/// * `Ok(())` if the BunkerTag is valid
+/// * `Err(BunkerVerseError::Validation)` if the BunkerTag is invalid
+///
+/// # Errors
+///
+/// Returns validation error if the tag is empty, wrong length, or contains invalid characters
 pub fn validate_bunker_tag(bunker_tag: &str) -> Result<()> {
     validate_required_string("bunker_tag", bunker_tag)?;
     validate_string_length("bunker_tag", bunker_tag, 3, 32)?;
@@ -224,6 +428,19 @@ pub fn validate_bunker_tag(bunker_tag: &str) -> Result<()> {
 }
 
 /// Validate display name (length + not empty)
+///
+/// # Arguments
+///
+/// * `display_name` - The display name to validate (1-64 characters, not empty after trimming)
+///
+/// # Returns
+///
+/// * `Ok(())` if the display name is valid
+/// * `Err(BunkerVerseError::Validation)` if the display name is invalid
+///
+/// # Errors
+///
+/// Returns validation error if the name is empty or not within the 1-64 character range
 pub fn validate_display_name(display_name: &str) -> Result<()> {
     validate_required_string("display_name", display_name)?;
     validate_string_length("display_name", display_name, 1, 64)?;
@@ -231,12 +448,38 @@ pub fn validate_display_name(display_name: &str) -> Result<()> {
 }
 
 /// Validate bio text (length)
+///
+/// # Arguments
+///
+/// * `bio` - The bio text to validate (0-256 characters)
+///
+/// # Returns
+///
+/// * `Ok(())` if the bio length is valid
+/// * `Err(BunkerVerseError::Validation)` if the bio is too long
+///
+/// # Errors
+///
+/// Returns [`ValidationError::InvalidLength`] if the bio exceeds 256 characters
 pub fn validate_bio(bio: &str) -> Result<()> {
     validate_string_length("bio", bio, 0, 256)?;
     Ok(())
 }
 
 /// Validate message content (length + not empty)
+///
+/// # Arguments
+///
+/// * `content` - The message content to validate (1-2000 characters, not empty after trimming)
+///
+/// # Returns
+///
+/// * `Ok(())` if the message content is valid
+/// * `Err(BunkerVerseError::Validation)` if the message content is invalid
+///
+/// # Errors
+///
+/// Returns validation error if the content is empty or not within the 1-2000 character range
 pub fn validate_message_content(content: &str) -> Result<()> {
     validate_required_string("message_content", content)?;
     validate_string_length("message_content", content, 1, 2000)?;
@@ -244,18 +487,58 @@ pub fn validate_message_content(content: &str) -> Result<()> {
 }
 
 /// Validate player level (1-100)
+///
+/// # Arguments
+///
+/// * `level` - The player level to validate (must be between 1 and 100 inclusive)
+///
+/// # Returns
+///
+/// * `Ok(())` if the level is valid
+/// * `Err(BunkerVerseError::Validation)` if the level is out of range
+///
+/// # Errors
+///
+/// Returns [`ValidationError::OutOfRange`] if the level is below 1 or above 100
 pub fn validate_player_level(level: u32) -> Result<()> {
     validate_numeric_range("player_level", level, 1, 100)?;
     Ok(())
 }
 
 /// Validate stat value (0-1000)
+///
+/// # Arguments
+///
+/// * `stat_name` - The name of the stat being validated (for error messages)
+/// * `value` - The stat value to validate (must be between 0 and 1000 inclusive)
+///
+/// # Returns
+///
+/// * `Ok(())` if the stat value is valid
+/// * `Err(BunkerVerseError::Validation)` if the stat value is out of range
+///
+/// # Errors
+///
+/// Returns [`ValidationError::OutOfRange`] if the value is above 1000
 pub fn validate_stat_value(stat_name: &str, value: u32) -> Result<()> {
     validate_numeric_range(stat_name, value, 0, 1000)?;
     Ok(())
 }
 
 /// Validate XP amount (0 to MAX_XP)
+///
+/// # Arguments
+///
+/// * `xp` - The XP amount to validate (must be between 0 and 1 billion)
+///
+/// # Returns
+///
+/// * `Ok(())` if the XP amount is valid
+/// * `Err(BunkerVerseError::Validation)` if the XP amount is out of range
+///
+/// # Errors
+///
+/// Returns [`ValidationError::OutOfRange`] if the XP amount exceeds 1 billion
 pub fn validate_xp_amount(xp: u64) -> Result<()> {
     const MAX_XP: u64 = 1_000_000_000; // 1 billion
     validate_numeric_range("xp", xp, 0, MAX_XP)?;
@@ -263,6 +546,19 @@ pub fn validate_xp_amount(xp: u64) -> Result<()> {
 }
 
 /// Validate NTC amount in wei (reasonable bounds)
+///
+/// # Arguments
+///
+/// * `amount_wei` - The NTC amount in wei to validate (must be within reasonable bounds)
+///
+/// # Returns
+///
+/// * `Ok(())` if the NTC amount is valid
+/// * `Err(BunkerVerseError::Validation)` if the NTC amount is out of range
+///
+/// # Errors
+///
+/// Returns [`ValidationError::OutOfRange`] if the amount exceeds the maximum reasonable value
 pub fn validate_ntc_amount_wei(amount_wei: u64) -> Result<()> {
     // Max reasonable amount: ~18 ETH equivalent (max u64)
     const MAX_REASONABLE_WEI: u64 = u64::MAX;
@@ -271,13 +567,39 @@ pub fn validate_ntc_amount_wei(amount_wei: u64) -> Result<()> {
 }
 
 /// Validate credit amount in cents
+///
+/// # Arguments
+///
+/// * `amount_cents` - The credit amount in cents to validate (0 to 1 million credits)
+///
+/// # Returns
+///
+/// * `Ok(())` if the credit amount is valid
+/// * `Err(BunkerVerseError::Validation)` if the credit amount is out of range
+///
+/// # Errors
+///
+/// Returns [`ValidationError::OutOfRange`] if the amount exceeds 1 million credits (100,000,000 cents)
 pub fn validate_credit_amount_cents(amount_cents: u64) -> Result<()> {
-    const MAX_CREDITS_CENTS: u64 = 1_000_000_00; // 1 million credits in cents
+    const MAX_CREDITS_CENTS: u64 = 100_000_000; // 1 million credits in cents
     validate_numeric_range("credit_amount", amount_cents, 0, MAX_CREDITS_CENTS)?;
     Ok(())
 }
 
 /// Validate gas price (reasonable bounds)
+///
+/// # Arguments
+///
+/// * `gas_price` - The gas price in wei to validate (0.1 gwei to 1000 gwei)
+///
+/// # Returns
+///
+/// * `Ok(())` if the gas price is valid
+/// * `Err(BunkerVerseError::Validation)` if the gas price is out of range
+///
+/// # Errors
+///
+/// Returns [`ValidationError::OutOfRange`] if the gas price is below 0.1 gwei or above 1000 gwei
 pub fn validate_gas_price(gas_price: u64) -> Result<()> {
     const MIN_GAS_PRICE: u64 = 100_000_000; // 0.1 gwei
     const MAX_GAS_PRICE: u64 = 1_000_000_000_000; // 1000 gwei
@@ -286,6 +608,19 @@ pub fn validate_gas_price(gas_price: u64) -> Result<()> {
 }
 
 /// Validate gas limit (reasonable bounds)
+///
+/// # Arguments
+///
+/// * `gas_limit` - The gas limit to validate (21,000 to 30,000,000)
+///
+/// # Returns
+///
+/// * `Ok(())` if the gas limit is valid
+/// * `Err(BunkerVerseError::Validation)` if the gas limit is out of range
+///
+/// # Errors
+///
+/// Returns [`ValidationError::OutOfRange`] if the gas limit is below minimum transfer limit or above block limit
 pub fn validate_gas_limit(gas_limit: u64) -> Result<()> {
     const MIN_GAS_LIMIT: u64 = 21_000; // Basic transfer
     const MAX_GAS_LIMIT: u64 = 30_000_000; // Block gas limit
@@ -294,6 +629,19 @@ pub fn validate_gas_limit(gas_limit: u64) -> Result<()> {
 }
 
 /// Validate signature format (65 bytes as hex string)
+///
+/// # Arguments
+///
+/// * `signature` - The signature to validate (must be 130 hex characters)
+///
+/// # Returns
+///
+/// * `Ok(())` if the signature format is valid
+/// * `Err(BunkerVerseError::Validation)` if the signature format is invalid
+///
+/// # Errors
+///
+/// Returns [`ValidationError::InvalidFormat`] if the signature is not exactly 130 hex characters
 pub fn validate_signature(signature: &str) -> Result<()> {
     if signature.len() != 130 {
         // 65 bytes * 2 (hex) = 130 chars
@@ -316,10 +664,23 @@ pub fn validate_signature(signature: &str) -> Result<()> {
 }
 
 /// Validate transaction hash format
+///
+/// # Arguments
+///
+/// * `tx_hash` - The transaction hash to validate (must start with 0x and be 66 chars total)
+///
+/// # Returns
+///
+/// * `Ok(())` if the transaction hash format is valid
+/// * `Err(BunkerVerseError::Validation)` if the transaction hash format is invalid
+///
+/// # Errors
+///
+/// Returns [`ValidationError::InvalidFormat`] if the hash doesn't start with 0x, wrong length, or invalid hex
 pub fn validate_transaction_hash(tx_hash: &str) -> Result<()> {
     if !tx_hash.starts_with("0x") || tx_hash.len() != 66 {
         return Err(BunkerVerseError::Validation(
-            ValidationError::InvalidFormat(format!("Invalid transaction hash format: {}", tx_hash)),
+            ValidationError::InvalidFormat(format!("Invalid transaction hash format: {tx_hash}")),
         ));
     }
 
@@ -336,12 +697,25 @@ pub fn validate_transaction_hash(tx_hash: &str) -> Result<()> {
 }
 
 /// Validate URL format (basic check)
+///
+/// # Arguments
+///
+/// * `url` - The URL to validate (must start with http:// or https://, max 2048 chars)
+///
+/// # Returns
+///
+/// * `Ok(())` if the URL format is valid
+/// * `Err(BunkerVerseError::Validation)` if the URL format is invalid
+///
+/// # Errors
+///
+/// Returns validation error if the URL doesn't start with http/https or exceeds 2048 characters
 pub fn validate_url(url: &str) -> Result<()> {
     if !url.starts_with("http://") && !url.starts_with("https://") {
         return Err(BunkerVerseError::Validation(
-            ValidationError::InvalidFormat(format!(
-                "Invalid URL format: must start with http:// or https://"
-            )),
+            ValidationError::InvalidFormat(
+                "Invalid URL format: must start with http:// or https://".to_string(),
+            ),
         ));
     }
 
@@ -364,6 +738,21 @@ pub fn validate_url(url: &str) -> Result<()> {
 // ============================================================================
 
 /// Validate enum values by name
+///
+/// # Arguments
+///
+/// * `field` - The name of the field being validated
+/// * `value` - The enum value to validate
+/// * `valid_values` - Array of valid enum value strings
+///
+/// # Returns
+///
+/// * `Ok(())` if the value is in the valid set
+/// * `Err(BunkerVerseError::Validation)` if the value is not valid
+///
+/// # Errors
+///
+/// Returns [`ValidationError::InvalidEnumValue`] if the value is not in the valid set
 pub fn validate_enum_value(field: &str, value: &str, valid_values: &[&str]) -> Result<()> {
     if !valid_values.contains(&value) {
         return Err(BunkerVerseError::Validation(
@@ -376,7 +765,7 @@ pub fn validate_enum_value(field: &str, value: &str, valid_values: &[&str]) -> R
     Ok(())
 }
 
-/// Valid BunkerClass enum values
+/// Valid `BunkerClass` enum values
 pub const VALID_BUNKER_CLASSES: &[&str] = &[
     "EXPLORER",
     "PATHFINDER",
@@ -392,10 +781,10 @@ pub const VALID_BUNKER_CLASSES: &[&str] = &[
     "RECLAIMER",
 ];
 
-/// Valid ClassAffiliation enum values
+/// Valid `ClassAffiliation` enum values
 pub const VALID_CLASS_AFFILIATIONS: &[&str] = &["LOYAL", "CORRUPT", "NEUTRAL"];
 
-/// Valid ItemRarity enum values
+/// Valid `ItemRarity` enum values
 pub const VALID_ITEM_RARITIES: &[&str] = &[
     "STANDARD",
     "OPTIMIZED",
@@ -405,7 +794,7 @@ pub const VALID_ITEM_RARITIES: &[&str] = &[
     "ETERNAL",
 ];
 
-/// Valid ItemType enum values
+/// Valid `ItemType` enum values
 pub const VALID_ITEM_TYPES: &[&str] = &[
     "HEAD",
     "TORSO",
@@ -418,22 +807,74 @@ pub const VALID_ITEM_TYPES: &[&str] = &[
     "COSMETIC_SKIN",
 ];
 
-/// Validate BunkerClass enum value
+/// Validate `BunkerClass` enum value
+///
+/// # Arguments
+///
+/// * `class` - The class name to validate
+///
+/// # Returns
+///
+/// * `Ok(())` if the class is valid
+/// * `Err(BunkerVerseError::Validation)` if the class is invalid
+///
+/// # Errors
+///
+/// Returns [`ValidationError::InvalidEnumValue`] if the class is not a valid `BunkerClass`
 pub fn validate_bunker_class(class: &str) -> Result<()> {
     validate_enum_value("bunker_class", class, VALID_BUNKER_CLASSES)
 }
 
-/// Validate ClassAffiliation enum value
+/// Validate `ClassAffiliation` enum value
+///
+/// # Arguments
+///
+/// * `affiliation` - The affiliation name to validate
+///
+/// # Returns
+///
+/// * `Ok(())` if the affiliation is valid
+/// * `Err(BunkerVerseError::Validation)` if the affiliation is invalid
+///
+/// # Errors
+///
+/// Returns [`ValidationError::InvalidEnumValue`] if the affiliation is not a valid `ClassAffiliation`
 pub fn validate_class_affiliation(affiliation: &str) -> Result<()> {
     validate_enum_value("class_affiliation", affiliation, VALID_CLASS_AFFILIATIONS)
 }
 
-/// Validate ItemRarity enum value
+/// Validate `ItemRarity` enum value
+///
+/// # Arguments
+///
+/// * `rarity` - The rarity name to validate
+///
+/// # Returns
+///
+/// * `Ok(())` if the rarity is valid
+/// * `Err(BunkerVerseError::Validation)` if the rarity is invalid
+///
+/// # Errors
+///
+/// Returns [`ValidationError::InvalidEnumValue`] if the rarity is not a valid `ItemRarity`
 pub fn validate_item_rarity(rarity: &str) -> Result<()> {
     validate_enum_value("item_rarity", rarity, VALID_ITEM_RARITIES)
 }
 
-/// Validate ItemType enum value
+/// Validate `ItemType` enum value
+///
+/// # Arguments
+///
+/// * `item_type` - The item type name to validate
+///
+/// # Returns
+///
+/// * `Ok(())` if the item type is valid
+/// * `Err(BunkerVerseError::Validation)` if the item type is invalid
+///
+/// # Errors
+///
+/// Returns [`ValidationError::InvalidEnumValue`] if the item type is not a valid `ItemType`
 pub fn validate_item_type(item_type: &str) -> Result<()> {
     validate_enum_value("item_type", item_type, VALID_ITEM_TYPES)
 }
@@ -443,6 +884,19 @@ pub fn validate_item_type(item_type: &str) -> Result<()> {
 // ============================================================================
 
 /// Validate list of player IDs
+///
+/// # Arguments
+///
+/// * `player_ids` - Slice of player ID strings to validate
+///
+/// # Returns
+///
+/// * `Ok(())` if all player IDs are valid
+/// * `Err(BunkerVerseError::Validation)` if any player ID is invalid
+///
+/// # Errors
+///
+/// Returns validation error for the first invalid player ID encountered
 pub fn validate_player_id_list(player_ids: &[String]) -> Result<()> {
     for player_id in player_ids {
         validate_player_id(player_id)?;
@@ -451,6 +905,19 @@ pub fn validate_player_id_list(player_ids: &[String]) -> Result<()> {
 }
 
 /// Validate list of NFT IDs
+///
+/// # Arguments
+///
+/// * `nft_ids` - Slice of NFT ID strings to validate
+///
+/// # Returns
+///
+/// * `Ok(())` if all NFT IDs are valid
+/// * `Err(BunkerVerseError::Validation)` if any NFT ID is invalid
+///
+/// # Errors
+///
+/// Returns validation error for the first invalid NFT ID encountered
 pub fn validate_nft_id_list(nft_ids: &[String]) -> Result<()> {
     for nft_id in nft_ids {
         validate_nft_id(nft_id)?;
@@ -459,6 +926,20 @@ pub fn validate_nft_id_list(nft_ids: &[String]) -> Result<()> {
 }
 
 /// Validate pagination parameters
+///
+/// # Arguments
+///
+/// * `page` - The page number to validate (must be >= 1)
+/// * `page_size` - The page size to validate (must be 1-100)
+///
+/// # Returns
+///
+/// * `Ok(())` if pagination parameters are valid
+/// * `Err(BunkerVerseError::Validation)` if pagination parameters are invalid
+///
+/// # Errors
+///
+/// Returns validation error if page is 0 or page_size is 0 or greater than 100
 pub fn validate_pagination(page: u32, page_size: u32) -> Result<()> {
     if page == 0 {
         return Err(crate::errors::BunkerVerseError::Validation(
@@ -532,7 +1013,9 @@ mod tests {
         let current_time = std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_secs() as i64;
+            .as_secs()
+            .try_into()
+            .unwrap_or(i64::MAX);
 
         assert!(validate_timestamp(current_time).is_ok()); // Current time
         assert!(validate_timestamp(1609459200).is_ok()); // 2021-01-01

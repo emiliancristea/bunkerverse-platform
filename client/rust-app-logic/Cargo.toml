@@ -1,6 +1,12 @@
 [package]
 name = "client-app-logic"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+description = "Client application logic for BUNKERVERSE Platform"
+license = "MIT"
+repository = "https://github.com/bunkercorporation/bunkerverse-platform"
+readme = "README.md"
+keywords = ["bunkerverse", "client", "application", "logic"]
+categories = ["game-development", "gui"]
 
 [dependencies]
