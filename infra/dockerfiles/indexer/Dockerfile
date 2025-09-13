@@ -20,8 +20,12 @@ RUN adduser --disabled-password --gecos "" --home "/nonexistent" --shell "/sbin/
 WORKDIR /build
 
 # Copy workspace files for dependency resolution
-COPY Cargo-docker.toml ./Cargo.toml
+COPY Cargo.toml ./Cargo.toml
 COPY Cargo.lock ./
+COPY contracts/Cargo.toml ./contracts/Cargo.toml
+COPY libs/common-rust/Cargo.toml ./libs/common-rust/Cargo.toml
+COPY libs/nar-rust-wrapper-for-llama-cpp/Cargo.toml ./libs/nar-rust-wrapper-for-llama-cpp/Cargo.toml
+COPY client/rust-app-logic/Cargo.toml ./client/rust-app-logic/Cargo.toml
 COPY services/identity/Cargo.toml ./services/identity/Cargo.toml
 COPY services/account/Cargo.toml ./services/account/Cargo.toml
 COPY services/marketplace/Cargo.toml ./services/marketplace/Cargo.toml
@@ -44,6 +48,10 @@ RUN mkdir -p services/ai_data/src && echo "fn main() {}" > services/ai_data/src/
 RUN mkdir -p services/feedback/src && echo "fn main() {}" > services/feedback/src/main.rs
 RUN mkdir -p services/indexer/src && echo "fn main() {}" > services/indexer/src/main.rs
 RUN mkdir -p services/ipfs-mock/src && echo "fn main() {}" > services/ipfs-mock/src/main.rs
+RUN mkdir -p contracts/src && echo "fn main() {}" > contracts/src/lib.rs
+RUN mkdir -p libs/common-rust/src && echo "fn main() {}" > libs/common-rust/src/lib.rs
+RUN mkdir -p libs/nar-rust-wrapper-for-llama-cpp/src && echo "fn main() {}" > libs/nar-rust-wrapper-for-llama-cpp/src/lib.rs
+RUN mkdir -p client/rust-app-logic/src && echo "fn main() {}" > client/rust-app-logic/src/lib.rs
 
 # Pre-build dependencies (this layer will be cached)
 RUN cargo build --release --bin indexer-service
