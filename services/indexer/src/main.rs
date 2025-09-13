@@ -198,7 +198,7 @@ pub async fn reset_stub_state(
 pub async fn get_blocks(
     State(state): State<AppState>,
     Query(pagination): Query<PaginationQuery>,
-    Query(block_query): Query<BlockQuery>,
+    Query(_block_query): Query<BlockQuery>,
 ) -> Result<Json<BlocksResponse>, (StatusCode, Json<ErrorResponse>)> {
     let context = state.create_context(None).await;
     let stub = state.stub.lock().await;

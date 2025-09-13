@@ -74,12 +74,9 @@ use bunkerverse::services::v1::{
     MissionBriefingContextProto,
     MissionContextProto,
     NarrativeAnalyticsProto,
-    // Enum types
-    NarrativeContextTypeProto,
     NarrativeHistoryStatsProto,
     NarrativePreferencesProto,
     NarrativeTemplateProto,
-    NarrativeToneProto,
     OptimizeContextGenerationRequest,
     OptimizeContextGenerationResponse,
     PersonalizedNarrativeContextProto,

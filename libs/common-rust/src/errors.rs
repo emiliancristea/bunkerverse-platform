@@ -454,32 +454,32 @@ impl BunkerVerseError {
             BunkerVerseError::Validation(val_err) => match val_err {
                 ValidationError::InvalidFormat(_) => "Invalid input format".to_string(),
                 ValidationError::OutOfRange { field, .. } => {
-                    format!("Value for {} is out of acceptable range", field)
+                    format!("Value for {field} is out of acceptable range")
                 }
                 ValidationError::RequiredField { field } => {
-                    format!("Required field {} is missing", field)
+                    format!("Required field {field} is missing")
                 }
                 ValidationError::InvalidLength { field, .. } => {
-                    format!("Invalid length for {}", field)
+                    format!("Invalid length for {field}")
                 }
                 _ => "Invalid input provided".to_string(),
             },
-            BunkerVerseError::Authentication(_) => {
+            Self::Authentication(_) => {
                 "Authentication required or insufficient permissions".to_string()
             }
-            BunkerVerseError::Database(DatabaseError::NotFound { .. }) => {
+            Self::Database(DatabaseError::NotFound { .. }) => {
                 "Requested resource not found".to_string()
             }
-            BunkerVerseError::Network(NetworkError::RateLimited { .. }) => {
+            Self::Network(NetworkError::RateLimited { .. }) => {
                 "Request rate limit exceeded, please try again later".to_string()
             }
-            BunkerVerseError::Blockchain(BlockchainError::InsufficientBalance { .. }) => {
+            Self::Blockchain(BlockchainError::InsufficientBalance { .. }) => {
                 "Insufficient balance for this operation".to_string()
             }
-            BunkerVerseError::GameLogic(GameLogicError::PlayerNotFound { .. }) => {
+            Self::GameLogic(GameLogicError::PlayerNotFound { .. }) => {
                 "Player not found".to_string()
             }
-            BunkerVerseError::GameLogic(GameLogicError::NftNotOwned { .. }) => {
+            Self::GameLogic(GameLogicError::NftNotOwned { .. }) => {
                 "You do not own this item".to_string()
             }
             _ => "An error occurred while processing your request".to_string(),
@@ -487,23 +487,24 @@ impl BunkerVerseError {
     }
 
     /// Generate trace-friendly error details (for debugging)
+    #[must_use]
     pub fn to_trace_details(&self) -> String {
-        format!("{:?}", self)
+        format!("{self:?}")
     }
 }
 
 impl fmt::Display for ErrorCode {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            ErrorCode::Unknown => write!(f, "UNKNOWN"),
-            ErrorCode::NotFound => write!(f, "NOT_FOUND"),
-            ErrorCode::Unauthorized => write!(f, "UNAUTHORIZED"),
-            ErrorCode::InvalidInput => write!(f, "INVALID_INPUT"),
-            ErrorCode::FeatureDisabled => write!(f, "FEATURE_DISABLED"),
-            ErrorCode::RateLimited => write!(f, "RATE_LIMITED"),
-            ErrorCode::InternalError => write!(f, "INTERNAL_ERROR"),
-            ErrorCode::InsufficientBalance => write!(f, "INSUFFICIENT_BALANCE"),
-            ErrorCode::TransactionFailed => write!(f, "TRANSACTION_FAILED"),
+            Self::Unknown => write!(f, "UNKNOWN"),
+            Self::NotFound => write!(f, "NOT_FOUND"),
+            Self::Unauthorized => write!(f, "UNAUTHORIZED"),
+            Self::InvalidInput => write!(f, "INVALID_INPUT"),
+            Self::FeatureDisabled => write!(f, "FEATURE_DISABLED"),
+            Self::RateLimited => write!(f, "RATE_LIMITED"),
+            Self::InternalError => write!(f, "INTERNAL_ERROR"),
+            Self::InsufficientBalance => write!(f, "INSUFFICIENT_BALANCE"),
+            Self::TransactionFailed => write!(f, "TRANSACTION_FAILED"),
         }
     }
 }
@@ -513,18 +514,21 @@ impl fmt::Display for ErrorCode {
 // ============================================================================
 
 impl ValidationError {
+    #[must_use]
     pub fn invalid_uuid(value: &str) -> Self {
         Self::InvalidUuid {
             value: value.to_string(),
         }
     }
 
+    #[must_use]
     pub fn invalid_ethereum_address(address: &str) -> Self {
         Self::InvalidEthereumAddress {
             address: address.to_string(),
         }
     }
 
+    #[must_use]
     pub fn required_field(field: &str) -> Self {
         Self::RequiredField {
             field: field.to_string(),
@@ -547,16 +551,19 @@ impl ValidationError {
 }
 
 impl AuthenticationError {
-    pub fn token_expired(expired_at: i64) -> Self {
+    #[must_use]
+    pub const fn token_expired(expired_at: i64) -> Self {
         Self::TokenExpired { expired_at }
     }
 
+    #[must_use]
     pub fn invalid_token(reason: &str) -> Self {
         Self::InvalidToken {
             reason: reason.to_string(),
         }
     }
 
+    #[must_use]
     pub fn insufficient_permissions(required: &str, current: &str) -> Self {
         Self::InsufficientPermissions {
             required: required.to_string(),
@@ -566,6 +573,7 @@ impl AuthenticationError {
 }
 
 impl DatabaseError {
+    #[must_use]
     pub fn not_found(table: &str, id: &str) -> Self {
         Self::NotFound {
             table: table.to_string(),
@@ -573,6 +581,7 @@ impl DatabaseError {
         }
     }
 
+    #[must_use]
     pub fn query_failed(query: &str, reason: &str) -> Self {
         Self::QueryFailed {
             query: query.to_string(),
@@ -582,12 +591,14 @@ impl DatabaseError {
 }
 
 impl GameLogicError {
+    #[must_use]
     pub fn player_not_found(player_id: &str) -> Self {
         Self::PlayerNotFound {
             player_id: player_id.to_string(),
         }
     }
 
+    #[must_use]
     pub fn nft_not_owned(nft_id: &str, player_id: &str) -> Self {
         Self::NftNotOwned {
             nft_id: nft_id.to_string(),

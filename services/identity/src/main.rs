@@ -277,7 +277,7 @@ pub async fn login(
 
 pub async fn register(
     State(state): State<AppState>,
-    Json(request): Json<RegisterRequest>,
+    Json(_request): Json<RegisterRequest>,
 ) -> Result<Json<RegisterResponse>, (StatusCode, Json<ErrorResponse>)> {
     let context = state.create_context(None).await;
     let stub = state.stub.lock().await;

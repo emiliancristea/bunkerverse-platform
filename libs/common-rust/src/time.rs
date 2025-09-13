@@ -24,13 +24,17 @@ impl Timestamp {
     pub const MAX_FUTURE_OFFSET_SECONDS: i64 = 86400;
 
     /// Create Timestamp from Unix seconds with validation
+    /// # Errors
+    /// Returns an error if the timestamp is invalid or out of range
     pub fn from_unix_seconds(seconds: i64) -> Result<Self> {
         validate_timestamp(seconds)?;
         Ok(Self(seconds))
     }
 
     /// Create Timestamp from current system time
+    #[must_use]
     pub fn now() -> Self {
+        #[allow(clippy::cast_possible_wrap)]
         let seconds = SystemTime::now()
             .duration_since(UNIX_EPOCH)
             .unwrap_or_default()
@@ -38,8 +42,11 @@ impl Timestamp {
         Self(seconds)
     }
 
-    /// Create Timestamp from SystemTime
+    /// Create Timestamp from `SystemTime`
+    /// # Errors
+    /// Returns an error if the `SystemTime` is before Unix epoch or invalid
     pub fn from_system_time(time: SystemTime) -> Result<Self> {
+        #[allow(clippy::cast_possible_wrap)]
         let seconds = time
             .duration_since(UNIX_EPOCH)
             .map_err(|_| ValidationError::InvalidTimestamp {
@@ -51,62 +58,79 @@ impl Timestamp {
     }
 
     /// Get Unix seconds
-    pub fn unix_seconds(&self) -> i64 {
+    #[must_use]
+    pub const fn unix_seconds(&self) -> i64 {
         self.0
     }
 
     /// Get Unix milliseconds
-    pub fn unix_millis(&self) -> i64 {
+    #[must_use]
+    pub const fn unix_millis(&self) -> i64 {
         self.0 * 1000
     }
 
-    /// Convert to SystemTime
+    /// Convert to `SystemTime`
+    #[must_use]
     pub fn to_system_time(&self) -> SystemTime {
-        UNIX_EPOCH + Duration::from_secs(self.0 as u64)
+        #[allow(clippy::cast_sign_loss)]
+        return UNIX_EPOCH + Duration::from_secs(self.0 as u64);
     }
 
     /// Add duration to timestamp
+    /// # Errors
+    /// Returns an error if the resulting timestamp is out of valid range
     pub fn add_duration(&self, duration: Duration) -> Result<Self> {
+        #[allow(clippy::cast_possible_wrap)]
         let new_seconds = self.0 + duration.as_secs() as i64;
         Self::from_unix_seconds(new_seconds)
     }
 
     /// Subtract duration from timestamp
+    /// # Errors
+    /// Returns an error if the resulting timestamp is out of valid range
     pub fn sub_duration(&self, duration: Duration) -> Result<Self> {
+        #[allow(clippy::cast_possible_wrap)]
         let new_seconds = self.0 - duration.as_secs() as i64;
         Self::from_unix_seconds(new_seconds)
     }
 
     /// Get duration since another timestamp
-    pub fn duration_since(&self, other: &Timestamp) -> Duration {
+    #[must_use]
+    pub const fn duration_since(&self, other: &Self) -> Duration {
         if self.0 >= other.0 {
-            Duration::from_secs((self.0 - other.0) as u64)
+            #[allow(clippy::cast_sign_loss)]
+            return Duration::from_secs((self.0 - other.0) as u64);
         } else {
             Duration::from_secs(0)
         }
     }
 
     /// Check if timestamp is in the future
+    #[must_use]
     pub fn is_future(&self) -> bool {
-        self.0 > Timestamp::now().0
+        self.0 > Self::now().0
     }
 
     /// Check if timestamp is in the past
+    #[must_use]
     pub fn is_past(&self) -> bool {
-        self.0 < Timestamp::now().0
+        self.0 < Self::now().0
     }
 
     /// Format as ISO 8601 string (UTC)
+    #[must_use]
     pub fn to_iso8601(&self) -> String {
         format_unix_timestamp(self.0)
     }
 
     /// Format as human-readable string
+    #[must_use]
     pub fn to_human_readable(&self) -> String {
         format_human_readable(self.0)
     }
 
     /// Format as relative time (e.g., "2 hours ago", "in 5 minutes")
+    #[must_use]
     pub fn to_relative_time(&self) -> String {
         format_relative_time(self.0)
     }
@@ -162,24 +186,30 @@ impl TryFrom<i64> for Timestamp {
 // ============================================================================
 
 /// Get current Unix timestamp in seconds
+#[must_use]
 pub fn current_unix_timestamp() -> i64 {
-    SystemTime::now()
+    #[allow(clippy::cast_possible_wrap)]
+    return SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
-        .as_secs() as i64
+        .as_secs() as i64;
 }
 
 /// Get current Unix timestamp in milliseconds
+#[must_use]
 pub fn current_unix_timestamp_millis() -> i64 {
-    SystemTime::now()
+    #[allow(clippy::cast_possible_truncation)]
+    return SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .unwrap_or_default()
-        .as_millis() as i64
+        .as_millis() as i64;
 }
 
 /// Convert Unix timestamp to ISO 8601 string (UTC)
+#[must_use]
 pub fn format_unix_timestamp(timestamp: i64) -> String {
     // Basic ISO 8601 formatting - in production use chrono for proper formatting
+    #[allow(clippy::cast_sign_loss)]
     let _datetime = UNIX_EPOCH + Duration::from_secs(timestamp as u64);
 
     // Simple formatting - this is a placeholder for proper datetime formatting
@@ -187,7 +217,9 @@ pub fn format_unix_timestamp(timestamp: i64) -> String {
 }
 
 /// Format timestamp as human-readable string
+#[must_use]
 pub fn format_human_readable(timestamp: i64) -> String {
+    #[allow(clippy::cast_sign_loss)]
     let _datetime = UNIX_EPOCH + Duration::from_secs(timestamp as u64);
 
     // Simple formatting - in production use chrono
@@ -201,6 +233,7 @@ pub fn format_human_readable(timestamp: i64) -> String {
 }
 
 /// Format timestamp as relative time
+#[must_use]
 pub fn format_relative_time(timestamp: i64) -> String {
     let current = current_unix_timestamp();
     let diff = current - timestamp;
@@ -211,11 +244,11 @@ pub fn format_relative_time(timestamp: i64) -> String {
         if future_diff < 60 {
             return "in a few seconds".to_string();
         } else if future_diff < 3600 {
-            return format!("in {} minutes", future_diff / 60);
+            return format!("in {minutes} minutes", minutes = future_diff / 60);
         } else if future_diff < 86400 {
-            return format!("in {} hours", future_diff / 3600);
+            return format!("in {hours} hours", hours = future_diff / 3600);
         } else {
-            return format!("in {} days", future_diff / 86400);
+            return format!("in {days} days", days = future_diff / 86400);
         }
     }
 
@@ -223,21 +256,22 @@ pub fn format_relative_time(timestamp: i64) -> String {
     if diff < 60 {
         "a few seconds ago".to_string()
     } else if diff < 3600 {
-        format!("{} minutes ago", diff / 60)
+        format!("{minutes} minutes ago", minutes = diff / 60)
     } else if diff < 86400 {
-        format!("{} hours ago", diff / 3600)
+        format!("{hours} hours ago", hours = diff / 3600)
     } else if diff < 604800 {
-        format!("{} days ago", diff / 86400)
+        format!("{days} days ago", days = diff / 86400)
     } else if diff < 2629746 {
-        format!("{} weeks ago", diff / 604800)
+        format!("{weeks} weeks ago", weeks = diff / 604800)
     } else if diff < 31556952 {
-        format!("{} months ago", diff / 2629746)
+        format!("{months} months ago", months = diff / 2629746)
     } else {
-        format!("{} years ago", diff / 31556952)
+        format!("{years} years ago", years = diff / 31556952)
     }
 }
 
 /// Check if timestamp is today (UTC)
+#[must_use]
 pub fn is_today(timestamp: i64) -> bool {
     let current = current_unix_timestamp();
     let current_day = current / 86400;
@@ -246,6 +280,7 @@ pub fn is_today(timestamp: i64) -> bool {
 }
 
 /// Check if timestamp is this week (UTC, week starts Monday)
+#[must_use]
 pub fn is_this_week(timestamp: i64) -> bool {
     let current = current_unix_timestamp();
     let current_week = (current / 86400 + 4) / 7; // +4 to make Monday week start
@@ -254,17 +289,20 @@ pub fn is_this_week(timestamp: i64) -> bool {
 }
 
 /// Get start of day timestamp (00:00:00 UTC)
-pub fn start_of_day(timestamp: i64) -> i64 {
+#[must_use]
+pub const fn start_of_day(timestamp: i64) -> i64 {
     (timestamp / 86400) * 86400
 }
 
 /// Get end of day timestamp (23:59:59 UTC)
-pub fn end_of_day(timestamp: i64) -> i64 {
+#[must_use]
+pub const fn end_of_day(timestamp: i64) -> i64 {
     start_of_day(timestamp) + 86399
 }
 
 /// Get start of week timestamp (Monday 00:00:00 UTC)
-pub fn start_of_week(timestamp: i64) -> i64 {
+#[must_use]
+pub const fn start_of_week(timestamp: i64) -> i64 {
     let days_since_epoch = timestamp / 86400;
     let days_since_monday = (days_since_epoch + 4) % 7; // +4 to make Monday = 0
     let monday_days = days_since_epoch - days_since_monday;
@@ -272,7 +310,8 @@ pub fn start_of_week(timestamp: i64) -> i64 {
 }
 
 /// Get end of week timestamp (Sunday 23:59:59 UTC)
-pub fn end_of_week(timestamp: i64) -> i64 {
+#[must_use]
+pub const fn end_of_week(timestamp: i64) -> i64 {
     start_of_week(timestamp) + (7 * 86400) - 1
 }
 
@@ -281,77 +320,80 @@ pub fn end_of_week(timestamp: i64) -> i64 {
 // ============================================================================
 
 /// Convert duration to human-readable string
+#[must_use]
 pub fn format_duration(duration: Duration) -> String {
     let total_seconds = duration.as_secs();
 
     if total_seconds < 60 {
-        format!("{}s", total_seconds)
+        format!("{total_seconds}s")
     } else if total_seconds < 3600 {
         let minutes = total_seconds / 60;
         let seconds = total_seconds % 60;
         if seconds == 0 {
-            format!("{}m", minutes)
+            format!("{minutes}m")
         } else {
-            format!("{}m {}s", minutes, seconds)
+            format!("{minutes}m {seconds}s")
         }
     } else if total_seconds < 86400 {
         let hours = total_seconds / 3600;
         let minutes = (total_seconds % 3600) / 60;
         if minutes == 0 {
-            format!("{}h", hours)
+            format!("{hours}h")
         } else {
-            format!("{}h {}m", hours, minutes)
+            format!("{hours}h {minutes}m")
         }
     } else {
         let days = total_seconds / 86400;
         let hours = (total_seconds % 86400) / 3600;
         if hours == 0 {
-            format!("{}d", days)
+            format!("{days}d")
         } else {
-            format!("{}d {}h", days, hours)
+            format!("{days}d {hours}h")
         }
     }
 }
 
 /// Parse duration from human-readable string (basic implementation)
+/// # Errors
+/// Returns an error if the duration string format is invalid
 pub fn parse_duration(duration_str: &str) -> Result<Duration> {
     let duration_str = duration_str.trim().to_lowercase();
 
-    if duration_str.ends_with("s") {
+    if duration_str.ends_with('s') {
         let num_str = &duration_str[..duration_str.len() - 1];
         let seconds: u64 = num_str.parse().map_err(|_| {
-            ValidationError::InvalidFormat(format!("Invalid duration format: {}", duration_str))
+            ValidationError::InvalidFormat(format!("Invalid duration format: {duration_str}"))
         })?;
         return Ok(Duration::from_secs(seconds));
     }
 
-    if duration_str.ends_with("m") {
+    if duration_str.ends_with('m') {
         let num_str = &duration_str[..duration_str.len() - 1];
         let minutes: u64 = num_str.parse().map_err(|_| {
-            ValidationError::InvalidFormat(format!("Invalid duration format: {}", duration_str))
+            ValidationError::InvalidFormat(format!("Invalid duration format: {duration_str}"))
         })?;
         return Ok(Duration::from_secs(minutes * 60));
     }
 
-    if duration_str.ends_with("h") {
+    if duration_str.ends_with('h') {
         let num_str = &duration_str[..duration_str.len() - 1];
         let hours: u64 = num_str.parse().map_err(|_| {
-            ValidationError::InvalidFormat(format!("Invalid duration format: {}", duration_str))
+            ValidationError::InvalidFormat(format!("Invalid duration format: {duration_str}"))
         })?;
         return Ok(Duration::from_secs(hours * 3600));
     }
 
-    if duration_str.ends_with("d") {
+    if duration_str.ends_with('d') {
         let num_str = &duration_str[..duration_str.len() - 1];
         let days: u64 = num_str.parse().map_err(|_| {
-            ValidationError::InvalidFormat(format!("Invalid duration format: {}", duration_str))
+            ValidationError::InvalidFormat(format!("Invalid duration format: {duration_str}"))
         })?;
         return Ok(Duration::from_secs(days * 86400));
     }
 
     // Try parsing as raw seconds
     let seconds: u64 = duration_str.parse().map_err(|_| {
-        ValidationError::InvalidFormat(format!("Invalid duration format: {}", duration_str))
+        ValidationError::InvalidFormat(format!("Invalid duration format: {duration_str}"))
     })?;
     Ok(Duration::from_secs(seconds))
 }
@@ -373,6 +415,7 @@ pub const YEAR: Duration = Duration::from_secs(31556952); // Average year (365.2
 // ============================================================================
 
 /// Check if it's time for daily reset (assumes UTC 00:00 reset)
+#[must_use]
 pub fn is_daily_reset_time() -> bool {
     let current = current_unix_timestamp();
     let seconds_in_day = current % 86400;
@@ -380,6 +423,7 @@ pub fn is_daily_reset_time() -> bool {
 }
 
 /// Check if it's time for weekly reset (assumes Monday 00:00 UTC reset)
+#[must_use]
 pub fn is_weekly_reset_time() -> bool {
     let current = current_unix_timestamp();
     let days_since_epoch = current / 86400;
@@ -390,6 +434,7 @@ pub fn is_weekly_reset_time() -> bool {
 }
 
 /// Get next daily reset timestamp
+#[must_use]
 pub fn next_daily_reset() -> i64 {
     let current = current_unix_timestamp();
     let current_day = current / 86400;
@@ -397,6 +442,7 @@ pub fn next_daily_reset() -> i64 {
 }
 
 /// Get next weekly reset timestamp
+#[must_use]
 pub fn next_weekly_reset() -> i64 {
     let current = current_unix_timestamp();
     let days_since_epoch = current / 86400;
@@ -412,6 +458,7 @@ pub fn next_weekly_reset() -> i64 {
 }
 
 /// Calculate mission expiry time based on type
+#[must_use]
 pub fn calculate_mission_expiry(mission_type: &str, start_time: i64) -> i64 {
     match mission_type.to_lowercase().as_str() {
         "daily" => next_daily_reset(),

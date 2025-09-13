@@ -18,12 +18,15 @@ use crate::validation::{validate_ethereum_address, validate_uuid_v4};
 pub struct PlayerId(Uuid);
 
 impl PlayerId {
-    /// Create a new random PlayerId
+    /// Create a new random `PlayerId`
+    #[must_use]
     pub fn new() -> Self {
         Self(Uuid::new_v4())
     }
 
-    /// Create PlayerId from validated UUID string
+    /// Create `PlayerId` from validated UUID string
+    /// # Errors
+    /// Returns `Err` if the string is not a valid UUID v4.
     pub fn from_string(id: &str) -> Result<Self> {
         validate_uuid_v4(id)?;
         let uuid = Uuid::from_str(id).map_err(|_| {
@@ -35,16 +38,19 @@ impl PlayerId {
     }
 
     /// Get the inner UUID
-    pub fn as_uuid(&self) -> &Uuid {
+    #[must_use]
+    pub const fn as_uuid(&self) -> &Uuid {
         &self.0
     }
 
     /// Convert to string representation
+    #[must_use]
     pub fn as_string(&self) -> String {
         self.0.to_string()
     }
 
     /// Validate UUID v4 format specifically
+    #[must_use]
     pub fn is_valid(id: &str) -> bool {
         validate_uuid_v4(id).is_ok()
     }
@@ -85,12 +91,15 @@ impl Default for PlayerId {
 pub struct NftId(Uuid);
 
 impl NftId {
-    /// Create a new random NftId
+    /// Create a new random `NftId`
+    #[must_use]
     pub fn new() -> Self {
         Self(Uuid::new_v4())
     }
 
-    /// Create NftId from validated UUID string
+    /// Create `NftId` from validated UUID string
+    /// # Errors
+    /// Returns `Err` if the string is not a valid UUID v4.
     pub fn from_string(id: &str) -> Result<Self> {
         validate_uuid_v4(id)?;
         let uuid = Uuid::from_str(id).map_err(|_| {
@@ -102,16 +111,19 @@ impl NftId {
     }
 
     /// Get the inner UUID
-    pub fn as_uuid(&self) -> &Uuid {
+    #[must_use]
+    pub const fn as_uuid(&self) -> &Uuid {
         &self.0
     }
 
     /// Convert to string representation
+    #[must_use]
     pub fn as_string(&self) -> String {
         self.0.to_string()
     }
 
     /// Validate UUID v4 format specifically
+    #[must_use]
     pub fn is_valid(id: &str) -> bool {
         validate_uuid_v4(id).is_ok()
     }
@@ -152,12 +164,15 @@ impl Default for NftId {
 pub struct MissionId(Uuid);
 
 impl MissionId {
-    /// Create a new random MissionId
+    /// Create a new random `MissionId`
+    #[must_use]
     pub fn new() -> Self {
         Self(Uuid::new_v4())
     }
 
-    /// Create MissionId from validated UUID string
+    /// Create `MissionId` from validated UUID string
+    /// # Errors
+    /// Returns `Err` if the string is not a valid UUID v4.
     pub fn from_string(id: &str) -> Result<Self> {
         validate_uuid_v4(id)?;
         let uuid = Uuid::from_str(id).map_err(|_| {
@@ -169,11 +184,13 @@ impl MissionId {
     }
 
     /// Get the inner UUID
-    pub fn as_uuid(&self) -> &Uuid {
+    #[must_use]
+    pub const fn as_uuid(&self) -> &Uuid {
         &self.0
     }
 
     /// Convert to string representation
+    #[must_use]
     pub fn as_string(&self) -> String {
         self.0.to_string()
     }
@@ -214,12 +231,15 @@ impl Default for MissionId {
 pub struct RobotId(Uuid);
 
 impl RobotId {
-    /// Create a new random RobotId
+    /// Create a new random `RobotId`
+    #[must_use]
     pub fn new() -> Self {
         Self(Uuid::new_v4())
     }
 
-    /// Create RobotId from validated UUID string
+    /// Create `RobotId` from validated UUID string
+    /// # Errors
+    /// Returns `Err` if the string is not a valid UUID v4.
     pub fn from_string(id: &str) -> Result<Self> {
         validate_uuid_v4(id)?;
         let uuid = Uuid::from_str(id).map_err(|_| {
@@ -231,11 +251,13 @@ impl RobotId {
     }
 
     /// Get the inner UUID
-    pub fn as_uuid(&self) -> &Uuid {
+    #[must_use]
+    pub const fn as_uuid(&self) -> &Uuid {
         &self.0
     }
 
     /// Convert to string representation
+    #[must_use]
     pub fn as_string(&self) -> String {
         self.0.to_string()
     }
@@ -280,18 +302,22 @@ impl Default for RobotId {
 pub struct EthereumAddress(String);
 
 impl EthereumAddress {
-    /// Create EthereumAddress from validated hex string
+    /// Create `EthereumAddress` from validated hex string
+    /// # Errors
+    /// Returns `Err` if the string is not a valid Ethereum address format.
     pub fn from_string(address: &str) -> Result<Self> {
         validate_ethereum_address(address)?;
         Ok(Self(address.to_lowercase()))
     }
 
     /// Get the address as string
+    #[must_use]
     pub fn as_string(&self) -> &str {
         &self.0
     }
 
     /// Get checksum address format
+    #[must_use]
     pub fn as_checksum(&self) -> String {
         // Basic checksum implementation - in production use proper EIP-55
         let mut result = String::with_capacity(42);
@@ -313,6 +339,7 @@ impl EthereumAddress {
     }
 
     /// Check if address is valid format
+    #[must_use]
     pub fn is_valid(address: &str) -> bool {
         validate_ethereum_address(address).is_ok()
     }
@@ -378,7 +405,9 @@ impl PlayerLevel {
     pub const MIN: u32 = 1;
     pub const MAX: u32 = 100;
 
-    /// Create PlayerLevel with validation
+    /// Create `PlayerLevel` with validation
+    /// # Errors
+    /// Returns `Err` if the level is outside the valid range.
     pub fn new(level: u32) -> Result<Self> {
         if !(Self::MIN..=Self::MAX).contains(&level) {
             return Err(BunkerVerseError::Validation(ValidationError::OutOfRange {
@@ -392,11 +421,13 @@ impl PlayerLevel {
     }
 
     /// Get the inner value
-    pub fn value(&self) -> u32 {
+    #[must_use]
+    pub const fn value(&self) -> u32 {
         self.0
     }
 
     /// Check if level is valid
+    #[must_use]
     pub fn is_valid(level: u32) -> bool {
         (Self::MIN..=Self::MAX).contains(&level)
     }
@@ -422,7 +453,9 @@ impl StatValue {
     pub const MIN: u32 = 0;
     pub const MAX: u32 = 1000;
 
-    /// Create StatValue with validation
+    /// Create `StatValue` with validation
+    /// # Errors
+    /// Returns `Err` if the value is outside the valid range.
     pub fn new(value: u32) -> Result<Self> {
         if value > Self::MAX {
             return Err(BunkerVerseError::Validation(ValidationError::OutOfRange {
@@ -436,12 +469,14 @@ impl StatValue {
     }
 
     /// Get the inner value
-    pub fn value(&self) -> u32 {
+    #[must_use]
+    pub const fn value(&self) -> u32 {
         self.0
     }
 
     /// Check if value is valid
-    pub fn is_valid(value: u32) -> bool {
+    #[must_use]
+    pub const fn is_valid(value: u32) -> bool {
         value <= Self::MAX
     }
 }
@@ -467,27 +502,38 @@ impl NtcAmount {
     /// Maximum supply (unlimited in practice, but set reasonable bound for validation)
     pub const MAX_SUPPLY_WEI: u64 = u64::MAX;
 
-    /// Create NtcAmount from wei
-    pub fn from_wei(wei: u64) -> Self {
+    /// Create `NtcAmount` from wei
+    #[must_use]
+    pub const fn from_wei(wei: u64) -> Self {
         Self(wei)
     }
 
-    /// Create NtcAmount from NTC (with 18 decimal places)
+    /// Create `NtcAmount` from NTC (with 18 decimal places)
+    #[must_use]
     pub fn from_ntc(ntc: f64) -> Self {
+        #[allow(
+            clippy::cast_possible_truncation,
+            clippy::cast_sign_loss,
+            clippy::cast_precision_loss
+        )]
         Self((ntc * Self::WEI_PER_NTC as f64) as u64)
     }
 
     /// Get amount in wei
-    pub fn wei(&self) -> u64 {
+    #[must_use]
+    pub const fn wei(&self) -> u64 {
         self.0
     }
 
     /// Get amount in NTC (as float)
+    #[must_use]
     pub fn ntc(&self) -> f64 {
-        self.0 as f64 / Self::WEI_PER_NTC as f64
+        #[allow(clippy::cast_precision_loss)]
+        return self.0 as f64 / Self::WEI_PER_NTC as f64;
     }
 
     /// Format as human-readable NTC amount
+    #[must_use]
     pub fn format_ntc(&self) -> String {
         format!("{:.6} NTC", self.ntc())
     }
@@ -510,7 +556,9 @@ impl CreditAmount {
     /// Maximum credits a player can hold
     pub const MAX_CREDITS: u64 = 100_000_000; // 1 million credits
 
-    /// Create CreditAmount from cents
+    /// Create `CreditAmount` from cents
+    /// # Errors
+    /// Returns `Err` if the amount exceeds maximum allowed credits.
     pub fn from_cents(cents: u64) -> Result<Self> {
         if cents > Self::MAX_CREDITS {
             return Err(BunkerVerseError::Validation(ValidationError::OutOfRange {
@@ -523,23 +571,34 @@ impl CreditAmount {
         Ok(Self(cents))
     }
 
-    /// Create CreditAmount from credits (with 2 decimal places)
+    /// Create `CreditAmount` from credits (with 2 decimal places)
+    /// # Errors
+    /// Returns `Err` if the amount exceeds maximum allowed credits.
     pub fn from_credits(credits: f64) -> Result<Self> {
+        #[allow(
+            clippy::cast_possible_truncation,
+            clippy::cast_sign_loss,
+            clippy::cast_precision_loss
+        )]
         let cents = (credits * Self::CENTS_PER_CREDIT as f64) as u64;
         Self::from_cents(cents)
     }
 
     /// Get amount in cents
-    pub fn cents(&self) -> u64 {
+    #[must_use]
+    pub const fn cents(&self) -> u64 {
         self.0
     }
 
     /// Get amount in credits (as float)
+    #[must_use]
     pub fn credits(&self) -> f64 {
-        self.0 as f64 / Self::CENTS_PER_CREDIT as f64
+        #[allow(clippy::cast_precision_loss)]
+        return self.0 as f64 / Self::CENTS_PER_CREDIT as f64;
     }
 
     /// Format as human-readable credits amount
+    #[must_use]
     pub fn format_credits(&self) -> String {
         format!("{:.2} Credits", self.credits())
     }
@@ -559,7 +618,9 @@ impl ExperiencePoints {
     /// Maximum XP a player can have
     pub const MAX_XP: u64 = 1_000_000_000; // 1 billion XP
 
-    /// Create ExperiencePoints with validation
+    /// Create `ExperiencePoints` with validation
+    /// # Errors
+    /// Returns `Err` if the XP amount exceeds the maximum allowed.
     pub fn new(xp: u64) -> Result<Self> {
         if xp > Self::MAX_XP {
             return Err(BunkerVerseError::Validation(ValidationError::OutOfRange {
@@ -573,13 +634,16 @@ impl ExperiencePoints {
     }
 
     /// Get XP value
-    pub fn value(&self) -> u64 {
+    #[must_use]
+    pub const fn value(&self) -> u64 {
         self.0
     }
 
     /// Calculate player level from XP (basic formula)
+    #[must_use]
     pub fn to_player_level(&self) -> PlayerLevel {
         // Simple level calculation: level = floor(sqrt(xp / 1000)) + 1
+        #[allow(clippy::cast_possible_truncation, clippy::cast_precision_loss)]
         let level = ((self.0 as f64 / 1000.0).sqrt() as u32 + 1).min(PlayerLevel::MAX);
         PlayerLevel::new(level).unwrap_or_default()
     }
@@ -620,7 +684,8 @@ pub struct CoreStats {
 }
 
 impl CoreStats {
-    /// Create new CoreStats with all zeros
+    /// Create new `CoreStats` with all zeros
+    #[must_use]
     pub fn new() -> Self {
         Self {
             damage: StatValue::default(),
@@ -638,7 +703,8 @@ impl CoreStats {
         }
     }
 
-    /// Calculate combat average
+    /// Calculate the average of combat-related stats (damage, accuracy, critical chance, armor piercing).
+    #[must_use]
     pub fn combat_average(&self) -> StatValue {
         let sum = self.damage.value()
             + self.accuracy.value()
@@ -647,28 +713,33 @@ impl CoreStats {
         StatValue::new(sum / 4).unwrap_or_default()
     }
 
-    /// Calculate mobility average
+    /// Calculate the average of mobility-related stats (speed, agility, stealth, evasion).
+    #[must_use]
     pub fn mobility_average(&self) -> StatValue {
         let sum =
             self.speed.value() + self.agility.value() + self.stealth.value() + self.evasion.value();
         StatValue::new(sum / 4).unwrap_or_default()
     }
 
-    /// Calculate survivability average
+    /// Calculate the average of survivability-related stats (health, shield).
+    #[must_use]
     pub fn survivability_average(&self) -> StatValue {
         let sum = self.health.value() + self.shield.value();
         StatValue::new(sum / 2).unwrap_or_default()
     }
 
-    /// Calculate sensors average
+    /// Calculate the average of sensor-related stats (detection, range).
+    #[must_use]
     pub fn sensors_average(&self) -> StatValue {
         let sum = self.detection.value() + self.range.value();
         StatValue::new(sum / 2).unwrap_or_default()
     }
 
-    /// Add stats from another CoreStats (for equipment bonuses)
-    pub fn add(&self, other: &CoreStats) -> Result<CoreStats> {
-        Ok(CoreStats {
+    /// Add stats from another `CoreStats` (for equipment bonuses).
+    /// # Errors
+    /// Returns `Err` if any resulting stat value exceeds the maximum allowed.
+    pub fn add(&self, other: &Self) -> Result<Self> {
+        Ok(Self {
             damage: StatValue::new(self.damage.value() + other.damage.value())?,
             accuracy: StatValue::new(self.accuracy.value() + other.accuracy.value())?,
             critical_chance: StatValue::new(

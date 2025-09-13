@@ -20,7 +20,19 @@ pub mod bunkerverse {
     }
 }
 
-use bunkerverse::services::v1::*;
+// Explicitly import required types and service trait from generated module
+use bunkerverse::services::v1::{
+    complete_zk_login_response, create_session_response, end_session_response,
+    get_session_info_response, identity_service_server, initiate_zk_login_response,
+    refresh_token_response, revoke_token_response, validate_token_response, CompleteZkLoginRequest,
+    CompleteZkLoginResponse, CompleteZkLoginSuccess, CreateSessionRequest, CreateSessionResponse,
+    CreateSessionSuccess, EndSessionRequest, EndSessionResponse, EndSessionSuccess,
+    GetSessionInfoRequest, GetSessionInfoResponse, GetSessionInfoSuccess, HealthRequest,
+    HealthResponse, InitiateZkLoginRequest, InitiateZkLoginResponse, InitiateZkLoginSuccess,
+    RefreshTokenRequest, RefreshTokenResponse, RefreshTokenSuccess, RevokeTokenRequest,
+    RevokeTokenResponse, RevokeTokenSuccess, UserProfileProto, ValidateTokenRequest,
+    ValidateTokenResponse, ValidateTokenSuccess,
+};
 
 pub struct IdentityGrpcService {
     stub: Arc<tokio::sync::Mutex<IdentityStub>>,

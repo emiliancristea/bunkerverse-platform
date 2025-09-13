@@ -149,7 +149,7 @@ pub fn validate_ethereum_address(address: &str) -> Result<()> {
 pub fn validate_ipfs_cid(cid: &str) -> Result<()> {
     if !get_ipfs_cid_regex().is_match(cid) {
         return Err(BunkerVerseError::Validation(
-            ValidationError::InvalidFormat(format!("Invalid IPFS CID format: {}", cid)),
+            ValidationError::InvalidFormat(format!("Invalid IPFS CID format: {cid}")),
         ));
     }
     Ok(())
@@ -172,7 +172,7 @@ pub fn validate_ipfs_cid(cid: &str) -> Result<()> {
 pub fn validate_email(email: &str) -> Result<()> {
     if !get_email_regex().is_match(email) {
         return Err(BunkerVerseError::Validation(
-            ValidationError::InvalidFormat(format!("Invalid email format: {}", email)),
+            ValidationError::InvalidFormat(format!("Invalid email format: {email}")),
         ));
     }
     Ok(())
@@ -195,7 +195,7 @@ pub fn validate_email(email: &str) -> Result<()> {
 pub fn validate_username(username: &str) -> Result<()> {
     if !get_username_regex().is_match(username) {
         return Err(BunkerVerseError::Validation(ValidationError::InvalidFormat(
-            format!("Invalid username format: {} (must be 3-32 chars, alphanumeric, underscore, hyphen only)", username)
+            format!("Invalid username format: {username} (must be 3-32 chars, alphanumeric, underscore, hyphen only)")
         )));
     }
     Ok(())
@@ -406,16 +406,16 @@ pub fn validate_nft_id(nft_id: &str) -> Result<()> {
     Ok(())
 }
 
-/// Validate BunkerTag (username format + length)
+/// Validate `BunkerTag` (username format + length)
 ///
 /// # Arguments
 ///
-/// * `bunker_tag` - The BunkerTag to validate
+/// * `bunker_tag` - The `BunkerTag` to validate
 ///
 /// # Returns
 ///
-/// * `Ok(())` if the BunkerTag is valid
-/// * `Err(BunkerVerseError::Validation)` if the BunkerTag is invalid
+/// * `Ok(())` if the `BunkerTag` is valid
+/// * `Err(BunkerVerseError::Validation)` if the `BunkerTag` is invalid
 ///
 /// # Errors
 ///
@@ -525,7 +525,7 @@ pub fn validate_stat_value(stat_name: &str, value: u32) -> Result<()> {
     Ok(())
 }
 
-/// Validate XP amount (0 to MAX_XP)
+/// Validate XP amount (0 to `MAX_XP`)
 ///
 /// # Arguments
 ///
@@ -939,7 +939,7 @@ pub fn validate_nft_id_list(nft_ids: &[String]) -> Result<()> {
 ///
 /// # Errors
 ///
-/// Returns validation error if page is 0 or page_size is 0 or greater than 100
+/// Returns validation error if page is 0 or `page_size` is 0 or greater than 100
 pub fn validate_pagination(page: u32, page_size: u32) -> Result<()> {
     if page == 0 {
         return Err(crate::errors::BunkerVerseError::Validation(
